@@ -2,7 +2,7 @@ import numpy as np
 
 from .fft import fftfreq, fft, ifft
 from .resample import _npads, _smart_pad, _trim
-from ..utils import log_spaced_cfs, const_Q_sds
+from .utils import log_spaced_cfs, const_Q_sds
 
 from pynwb.misc import DecompositionSeries
 

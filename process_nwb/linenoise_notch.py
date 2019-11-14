@@ -1,9 +1,7 @@
-from __future__ import division
 import numpy as np
 from scipy.signal import firwin2, filtfilt
 
 from .fft import rfftfreq, rfft, irfft
-
 
 
 __all__ = ['apply_linenoise_notch']

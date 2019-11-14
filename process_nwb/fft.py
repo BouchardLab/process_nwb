@@ -1,7 +1,4 @@
-import scipy
-import numpy as np
-from numpy.fft import rfftfreq, fftfreq
-
+from numpy.fft import rfftfreq, fftfreq, ifftshift
 try:
     from mkl_fft._numpy_fft import rfft, irfft, fft, ifft
 except ImportError:

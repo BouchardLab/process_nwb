@@ -1,10 +1,8 @@
 import numpy as np
 import scipy as sp
-
-from .fft import rfft, irfft
-from numpy.fft import ifftshift, rfftfreq
-
 from pynwb.ecephys import ElectricalSeries
+
+from .fft import rfft, irfft, ifftshift, rfftfreq
 
 
 __all__ = ['resample',
