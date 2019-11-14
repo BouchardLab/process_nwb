@@ -1,5 +1,7 @@
-from __future__ import division
 import numpy as np
+
+import pynwb
+from pynwb.ecephys import ElectricalSeries
 
 
 __all__ = ['CAR',
@@ -30,10 +32,10 @@ def CAR(X, mean_frac=.95, round_func=np.ceil):
     if mean_frac == 1.:
         avg = np.nanmean(X, axis=1, keepdims=True)
     else:
-        n_exclude = int(round_func(n_channels * (1. - mean_frac)) / 2.)
-        if n_exclude == n_channels:
+        n_exclude = int(round_func(n_channels * (1. - mean_frac) / 2.))
+        if 2 * n_exclude >= n_channels:
             raise ValueError
-        avg = np.nanmean(np.sort(X, axis=1)[:, n_exclude:-n_exclude],
+        avg = np.nanmean(np.sort(X, axis=1)[:, n_exclude:n_channels - n_exclude],
                          axis=1, keepdims=True)
     return avg
 
@@ -57,11 +59,11 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
     Xp : ndarray, (n_time, n_channels)
        Common average reference.
     """
-    Xp = X - CAR(X, mean_frac=mean_frac, round_func=round_func)
-    return Xp
+    X_CAR = X - CAR(X, mean_frac=mean_frac, round_func=round_func)
+    return X_CAR
 
 
-def store_CAR(X, nwb, mean_frac=.95, round_func=np.ceil):
+def store_subtract_CAR(nwbfile, series_name, mean_frac=.95, round_func=np.ceil):
     """
     Compute and subtract the common average (mean) reference across channels.
 
@@ -82,4 +84,20 @@ def store_CAR(X, nwb, mean_frac=.95, round_func=np.ceil):
     Xp : ndarray, (n_time, n_channels)
        Common average reference.
     """
-    raise NotImplementedError
+    electrical_series = nwbfile.acquisition[series_name]
+    X = electrical_series.data[:]
+    rate = electrical_series.rate
+
+    avg = CAR(X, mean_frac=mean_frac, round_func=round_func)
+    X_CAR = X - avg
+
+    electrical_series_CAR = ElectricalSeries('CAR_' + electrical_series.name,
+                                             avg,
+                                             electrical_series.electrodes,
+                                             starting_time=electrical_series.starting_time,
+                                             rate=rate,
+                                             description=('CAR: ' +
+                                                          electrical_series.description))
+
+    nwbfile.add_acquisition(electrical_series_CAR)
+    return X_CAR, electrical_series_CAR

@@ -51,31 +51,7 @@ def apply_linenoise_notch(X, rate):
         Denoised data, dimensions (n_channels, n_timePoints)
     """
 
-    nyquist = rate / 2
-    noise_hz = 60.
-    notches = np.arange(noise_hz, nyquist, noise_hz)
-
-    return apply_notches(X, notches, rate)
-
-
-def store_linenoise_notch(X, rate):
-    """
-    Apply Notch filter at 60 Hz and its harmonics
-
-    Parameters
-    ----------
-    X : array
-        Input data, dimensions (n_channels, n_timePoints)
-    rate : float
-        Number of samples per second
-
-    Returns
-    -------
-    X : array
-        Denoised data, dimensions (n_channels, n_timePoints)
-    """
-
-    nyquist = rate / 2
+    nyquist = rate / 2.
     noise_hz = 60.
     notches = np.arange(noise_hz, nyquist, noise_hz)
 

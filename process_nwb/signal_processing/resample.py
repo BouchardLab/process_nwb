@@ -1,12 +1,14 @@
 import numpy as np
 import scipy as sp
 
-
 from .fft import rfft, irfft
 from numpy.fft import ifftshift, rfftfreq
 
+from pynwb.ecephys import ElectricalSeries
 
-__all__ = ['resample']
+
+__all__ = ['resample',
+           'store_resample']
 
 
 """
@@ -39,101 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
-def _smart_pad(X, n_pad, pad='reflect_limited'):
-    """Pad vector X."""
-    n_time, n_channels = X.shape
-    n_pad = np.asarray(n_pad)
-    assert n_pad.shape == (2,)
-    if (n_pad == 0).all():
-        return x
-    elif (n_pad < 0).any():
-        raise RuntimeError('n_pad must be non-negative')
-    if pad == 'reflect_limited':
-        # need to pad with zeros if len(x) <= npad
-        l_z_pad = np.zeros((max(n_pad[0] - len(X) + 1, 0), n_channels), dtype=X.dtype)
-        r_z_pad = np.zeros((max(n_pad[1] - len(X) + 1, 0), n_channels), dtype=X.dtype)
-        return np.concatenate([l_z_pad, 2 * X[[0]] - X[n_pad[0]:0:-1], X,
-                               2 * X[[-1]] - X[-2:-n_pad[1] - 2:-1], r_z_pad], axis=0)
-    else:
-        return np.pad(X, (tuple(n_pad), 0), pad)
-
-
-def _fft_resample(X, new_len, npads, to_removes, pad='reflect_limited'):
-    """Do FFT resampling with a filter function
-    Parameters
-    ----------
-    x : 1-d array
-        The array to resample. Will be converted to float64 if necessary.
-    new_len : int
-        The size of the output array (before removing padding).
-    npads : tuple of int
-        Amount of padding to apply to the start and end of the
-        signal before resampling.
-    to_removes : tuple of int
-        Number of samples to remove after resampling.
-    pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last values
-        of the vector, followed by zeros.
-    Returns
-    -------
-    x : 1-d array
-        Filtered version of x.
-    """
-    # add some padding at beginning and end to make this work a little cleaner
-    if X.dtype != np.float64:
-        X = X.astype(np.float64)
-    X = _smart_pad(X, npads, pad)
-    old_len = len(X)
-    shorter = new_len < old_len
-    use_len = new_len if shorter else old_len
-    X_fft = rfft(X, axis=0)
-    if use_len % 2 == 0:
-        nyq = use_len // 2
-        X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
-    y = irfft(X_fft, n=new_len, axis=0)
-
-    # now let's trim it back to the correct size (if there was padding)
-    if (to_removes > 0).any():
-        y = y[to_removes[0]:y.shape[0] - to_removes[1]]
-
-    return y
-
-
-def resample_func(X, num, npad=100, axis=0, pad='reflect_limited'):
-    """Resample an array.
-    Operates along the last dimension of the array.
-    Parameters
-    ----------
-    X : ndarray
-        Signal to resample.
-    up : float
-        Factor to upsample by.
-    down : float
-        Factor to downsample by.
-    npad : int
-        Padding to add to beginning and end of timeseries.
-    axis : int
-        Axis along which to resample (default is the first axis).
-    pad : str
-        Type of padding. The default is ``'reflect_limited'``.
-
-    Returns
-    -------
-    y : array
-        The x array resampled.
-
-    Notes
-    -----
-    This uses edge padding to improve scipy.signal.resample's resampling method,
-    which we have adapted for our use here.
-    """
+def _npads(X, npad, ratio=1.):
     n_time = X.shape[0]
-    ratio = float(num) / n_time
-    if axis < 0:
-        axis = X.ndim + axis
-    orig_last_axis = X.ndim - 1
     bad_msg = 'npad must be "auto" or an integer'
     if isinstance(npad, str):
         if npad != 'auto':
@@ -157,14 +66,85 @@ def resample_func(X, num, npad=100, axis=0, pad='reflect_limited'):
     to_removes = np.array(to_removes)
     # This should hold:
     # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
+    return npads, to_removes, new_len
+
+
+def _trim(X, to_removes):
+    if (to_removes > 0).any():
+        n_times = X.shape[0]
+        X = X[to_removes[0]:n_times - to_removes[1]]
+    return X
+
+def _smart_pad(X, npads, pad='reflect_limited'):
+    """Pad vector X."""
+    n_time, n_channels = X.shape
+    npads = np.asarray(npads)
+    assert npads.shape == (2,)
+    if (npads == 0).all():
+        return x
+    elif (npads < 0).any():
+        raise RuntimeError('npad must be non-negative')
+    if pad == 'reflect_limited':
+        # need to pad with zeros if len(x) <= npad
+        l_z_pad = np.zeros((max(npads[0] - len(X) + 1, 0), n_channels), dtype=X.dtype)
+        r_z_pad = np.zeros((max(npads[1] - len(X) + 1, 0), n_channels), dtype=X.dtype)
+        return np.concatenate([l_z_pad, 2 * X[[0]] - X[npads[0]:0:-1], X,
+                               2 * X[[-1]] - X[-2:-npads[1] - 2:-1], r_z_pad], axis=0)
+    else:
+        return np.pad(X, (tuple(npads), 0), pad)
+
+
+def resample_func(X, num, npad=100, pad='reflect_limited'):
+    """Resample an array.
+    Operates along the last dimension of the array.
+
+    Parameters
+    ----------
+    X : ndarray, (n_time, ...)
+        Signal to resample.
+    up : float
+        Factor to upsample by.
+    down : float
+        Factor to downsample by.
+    npad : int
+        Padding to add to beginning and end of timeseries.
+    pad : str
+        Type of padding. The default is ``'reflect_limited'``.
+
+    Returns
+    -------
+    y : array
+        The x array resampled.
+
+    Notes
+    -----
+    This uses edge padding to improve scipy.signal.resample's resampling method,
+    which we have adapted for our use here.
+    """
+    n_time = X.shape[0]
+    ratio = float(num) / n_time
+    npads, to_removes, new_len = _npads(X, npad, ratio=ratio)
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
-    y = _fft_resample(X, new_len, npads, to_removes, pad)
+    if X.dtype != np.float64:
+        X = X.astype(np.float64)
+    X = _smart_pad(X, npads, pad)
+    old_len = len(X)
+    shorter = new_len < old_len
+    use_len = new_len if shorter else old_len
+    X_fft = rfft(X, axis=0)
+    if use_len % 2 == 0:
+        nyq = use_len // 2
+        X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
+    y = irfft(X_fft, n=new_len, axis=0)
+
+    # now let's trim it back to the correct size (if there was padding)
+    y = _trim(y, to_removes)
 
     return y
 
 
-def resample(X, new_freq, old_freq, kind=1, axis=0, same_sign=False):
+def resample(X, new_freq, old_freq, kind=1, same_sign=False):
     """
     Resamples the ECoG signal from the original
     sampling frequency to a new frequency.
@@ -177,8 +157,6 @@ def resample(X, new_freq, old_freq, kind=1, axis=0, same_sign=False):
         New sampling frequency
     old_freq : float
         Original sampling frequency
-    axis : int (optional)
-        Axis along which to resample the data
 
     Returns
     -------
@@ -193,13 +171,13 @@ def resample(X, new_freq, old_freq, kind=1, axis=0, same_sign=False):
         else:
             med = ratio
         meds = [1] * X.ndim
-        meds[axis % X.ndim] = med
+        meds[0] = med
         slices = [slice(None)] * X.ndim
-        slices[axis % X.ndim] = slice(None, None, ratio)
+        slices[0] = slice(None, None, ratio)
         Xds = sp.signal.medfilt(X, meds)[slices]
     else:
-        time = X.shape[axis]
-        new_time = int(np.ceil(time * new_freq / old_freq))
+        n_time = X.shape[0]
+        new_n_time = int(np.ceil(n_time * new_freq / old_freq))
         if kind == 0:
             ratio = int(ratio)
             if (ratio % 2) == 0:
@@ -207,11 +185,29 @@ def resample(X, new_freq, old_freq, kind=1, axis=0, same_sign=False):
             else:
                 med = ratio
             meds = [1] * X.ndim
-            meds[axis % X.ndim] = med
+            meds[0] = med
             Xf = sp.signal.medfilt(X, meds)
-            f = sp.interpolate.interp1d(np.linspace(0, 1, time), Xf, axis=axis)
-            Xds = f(np.linspace(0, 1, new_time))
+            f = sp.interpolate.interp1d(np.linspace(0, 1, n_time), Xf, axis=0)
+            Xds = f(np.linspace(0, 1, new_n_time))
         else:
-            Xds = resample_func(X, new_time, axis=axis)
+            Xds = resample_func(X, new_n_time)
 
     return Xds
+
+
+def store_resample(nwbfile, series_name, new_freq, kind=1, same_sign=False):
+    new_freq = float(new_freq)
+    electrical_series = nwbfile.acquisition[series_name]
+    X = electrical_series.data[:]
+    old_freq = electrical_series.rate
+
+    Xds = resample(X, new_freq, old_freq, kind=kind, same_sign=same_sign)
+
+    electrical_series_ds = ElectricalSeries('downsampled_' + electrical_series.name,
+                                            Xds,
+                                            electrical_series.electrodes,
+                                            starting_time=electrical_series.starting_time,
+                                            rate=new_freq,
+                                            description='Downsampled: ' + electrical_series.description)
+    nwbfile.add_acquisition(electrical_series_ds)
+    return Xds, electrical_series_ds
