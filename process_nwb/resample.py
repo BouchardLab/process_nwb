@@ -2,7 +2,8 @@ import numpy as np
 import scipy as sp
 from pynwb.ecephys import ElectricalSeries
 
-from .fft import rfft, irfft, ifftshift, rfftfreq
+from .utils import _npads, _smart_pad, _trim
+from .fft import fft, ifft, rfft, irfft, rfftfreq
 
 
 __all__ = ['resample',
@@ -37,59 +38,6 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-
-
-def _npads(X, npad, ratio=1.):
-    n_time = X.shape[0]
-    bad_msg = 'npad must be "auto" or an integer'
-    if isinstance(npad, str):
-        if npad != 'auto':
-            raise ValueError(bad_msg)
-        # Figure out reasonable pad that gets us to a power of 2
-        min_add = min(n_time // 8, 100) * 2
-        npad = 2 ** int(np.ceil(np.log2(n_time + min_add))) - n_time
-        npad, extra = divmod(npad, 2)
-        npads = np.array([npad, npad + extra], int)
-    else:
-        if npad != int(npad):
-            raise ValueError(bad_msg)
-        npads = np.array([npad, npad], int)
-
-    # prep for resampling now
-    orig_len = n_time + npads.sum()  # length after padding
-    new_len = int(round(ratio * orig_len))  # length after resampling
-    final_len = int(round(ratio * n_time))
-    to_removes = [int(round(ratio * npads[0]))]
-    to_removes.append(new_len - final_len - to_removes[0])
-    to_removes = np.array(to_removes)
-    # This should hold:
-    # assert np.abs(to_removes[1] - to_removes[0]) <= int(np.ceil(ratio))
-    return npads, to_removes, new_len
-
-
-def _trim(X, to_removes):
-    if (to_removes > 0).any():
-        n_times = X.shape[0]
-        X = X[to_removes[0]:n_times - to_removes[1]]
-    return X
-
-def _smart_pad(X, npads, pad='reflect_limited'):
-    """Pad vector X."""
-    n_time, n_channels = X.shape
-    npads = np.asarray(npads)
-    assert npads.shape == (2,)
-    if (npads == 0).all():
-        return x
-    elif (npads < 0).any():
-        raise RuntimeError('npad must be non-negative')
-    if pad == 'reflect_limited':
-        # need to pad with zeros if len(x) <= npad
-        l_z_pad = np.zeros((max(npads[0] - len(X) + 1, 0), n_channels), dtype=X.dtype)
-        r_z_pad = np.zeros((max(npads[1] - len(X) + 1, 0), n_channels), dtype=X.dtype)
-        return np.concatenate([l_z_pad, 2 * X[[0]] - X[npads[0]:0:-1], X,
-                               2 * X[[-1]] - X[-2:-npads[1] - 2:-1], r_z_pad], axis=0)
-    else:
-        return np.pad(X, (tuple(npads), 0), pad)
 
 
 def resample_func(X, num, npad=100, pad='reflect_limited'):
@@ -131,6 +79,7 @@ def resample_func(X, num, npad=100, pad='reflect_limited'):
     shorter = new_len < old_len
     use_len = new_len if shorter else old_len
     X_fft = rfft(X, axis=0)
+    X_fft *= ratio
     if use_len % 2 == 0:
         nyq = use_len // 2
         X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
@@ -188,7 +137,8 @@ def resample(X, new_freq, old_freq, kind=1, same_sign=False):
             f = sp.interpolate.interp1d(np.linspace(0, 1, n_time), Xf, axis=0)
             Xds = f(np.linspace(0, 1, new_n_time))
         else:
-            Xds = resample_func(X, new_n_time)
+            npad = int(max(new_freq, old_freq))
+            Xds = resample_func(X, new_n_time, npad=npad)
 
     return Xds
 

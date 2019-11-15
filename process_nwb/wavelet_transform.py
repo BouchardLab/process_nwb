@@ -1,8 +1,8 @@
 import numpy as np
 
 from .fft import fftfreq, fft, ifft
-from .resample import _npads, _smart_pad, _trim
-from .utils import log_spaced_cfs, const_Q_sds
+from .utils import (_npads, _smart_pad, _trim,
+                    log_spaced_cfs, const_Q_sds)
 
 from pynwb.misc import DecompositionSeries
 
@@ -101,7 +101,7 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None,
 
 
 def store_wavelet_transform(nwbfile, series_name, filters='default',
-                            X_fft_h=None, npad=100):
+                            X_fft_h=None, npad=100, abs_only=True):
     """
     Apply bandpass filtering with wavelet transform using
     a prespecified set of filters.
@@ -127,22 +127,35 @@ def store_wavelet_transform(nwbfile, series_name, filters='default',
     rate = electrical_series.rate
     X_wvlt, _ = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
                                   npad=npad)
-    X_wvlt = abs(X_wvlt)
+    electrical_series_wvlt_amp = DecompositionSeries('wvlt_amp' + electrical_series.name,
+                                                     abs(X_wvlt),
+                                                     metric='amplitude',
+                                                     source_timeseries=electrical_series,
+                                                     starting_time=electrical_series.starting_time,
+                                                     rate=rate,
+                                                     description=('Wavlet: ' +
+                                                                  electrical_series.description))
+    series = [electrical_series_wvlt_amp]
+    if not abs_only:
+        electrical_series_wvlt_phase = DecompositionSeries('wvlt_phase' + electrical_series.name,
+                                                           np.angle(X_wvlt),
+                                                           metric='phase',
+                                                           source_timeseries=electrical_series,
+                                                           starting_time=electrical_series.starting_time,
+                                                           rate=rate,
+                                                           description=('Wavlet: ' +
+                                                                        electrical_series.description))
+        series.append(electrical_series_wvlt_phase)
 
-    electrical_series_wvlt = DecompositionSeries('wvlt_' + electrical_series.name,
-                                                 X_wvlt,
-                                                 metric='amplitude',
-                                                 source_timeseries=electrical_series,
-                                                 starting_time=electrical_series.starting_time,
-                                                 rate=rate,
-                                                 description=('Wavlet: ' +
-                                                              electrical_series.description))
-    if filters == 'default':
-        cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-        sds = const_Q_sds(cfs)
-        for ii , (cf, sd) in enumerate(zip(cfs, sds)):
-            electrical_series_wvlt.add_band(band_name=str(ii), band_mean=cf,
-                                            band_stdev=sd, band_limits=(-1, -1))
+    for es in series:
+        if filters == 'default':
+            cfs = log_spaced_cfs(4.0749286538265, 200, 40)
+            sds = const_Q_sds(cfs)
+            for ii , (cf, sd) in enumerate(zip(cfs, sds)):
+                es.add_band(band_name=str(ii), band_mean=cf,
+                            band_stdev=sd, band_limits=(-1, -1))
 
-    nwbfile.add_acquisition(electrical_series_wvlt)
-    return X_wvlt, electrical_series_wvlt
+        nwbfile.add_acquisition(es)
+    if len(series) == 1:
+        series = series[0]
+    return X_wvlt, series
