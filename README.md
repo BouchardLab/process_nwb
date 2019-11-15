@@ -1,2 +1,2 @@
-# process_nwb_ecog
-Functions for preprocessing ECoG data stored in the NWB format
+# process_nwb
+Functions for preprocessing (ECoG) data stored in the NWB format
