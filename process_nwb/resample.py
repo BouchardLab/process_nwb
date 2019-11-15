@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
-def resample_func(X, num, npad=100, pad='reflect_limited'):
+def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
     """Resample an array.
     Operates along the last dimension of the array.
 
@@ -78,12 +78,19 @@ def resample_func(X, num, npad=100, pad='reflect_limited'):
     old_len = len(X)
     shorter = new_len < old_len
     use_len = new_len if shorter else old_len
-    X_fft = rfft(X, axis=0)
-    X_fft *= ratio
-    if use_len % 2 == 0:
-        nyq = use_len // 2
-        X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
-    y = irfft(X_fft, n=new_len, axis=0)
+    if real:
+        X_fft = rfft(X, axis=0)
+        if use_len % 2 == 0:
+            nyq = use_len // 2
+            X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
+        X_fft *= ratio
+    else:
+        X_fft = fft(X, axis=0)
+        X_fft[0] *= ratio
+    if real:
+        y = irfft(X_fft, n=new_len, axis=0)
+    else:
+        y = ifft(X_fft, n=new_len, axis=0).real
 
     # now let's trim it back to the correct size (if there was padding)
     y = _trim(y, to_removes)
@@ -91,7 +98,7 @@ def resample_func(X, num, npad=100, pad='reflect_limited'):
     return y
 
 
-def resample(X, new_freq, old_freq, kind=1, same_sign=False):
+def resample(X, new_freq, old_freq, kind=1, same_sign=False, real=True):
     """
     Resamples the ECoG signal from the original
     sampling frequency to a new frequency.
@@ -138,7 +145,7 @@ def resample(X, new_freq, old_freq, kind=1, same_sign=False):
             Xds = f(np.linspace(0, 1, new_n_time))
         else:
             npad = int(max(new_freq, old_freq))
-            Xds = resample_func(X, new_n_time, npad=npad)
+            Xds = resample_func(X, new_n_time, npad=npad, real=real)
 
     return Xds
 
