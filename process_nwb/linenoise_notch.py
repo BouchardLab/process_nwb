@@ -28,7 +28,7 @@ def apply_notches(X, notches, rate, fft=True):
             filt = firwin2(n_taps, freq, gain)
             X = filtfilt(filt, np.array([1]), X, axis=0)
     if fft:
-        X = irfft(fd, axis=0)
+        X = irfft(fd, n=X.shape[0], axis=0)
     return X
 
 

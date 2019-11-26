@@ -150,10 +150,10 @@ def resample(X, new_freq, old_freq, kind=1, same_sign=False, real=True):
     return Xds
 
 
-def store_resample(nwbfile, series_name, new_freq, kind=1, same_sign=False):
+def store_resample(electrical_series, processing, new_freq, kind=1, same_sign=False,
+                   scaling=1e6):
     new_freq = float(new_freq)
-    electrical_series = nwbfile.acquisition[series_name]
-    X = electrical_series.data[:]
+    X = electrical_series.data[:] * scaling
     old_freq = electrical_series.rate
 
     Xds = resample(X, new_freq, old_freq, kind=kind, same_sign=same_sign)
@@ -164,5 +164,5 @@ def store_resample(nwbfile, series_name, new_freq, kind=1, same_sign=False):
                                             starting_time=electrical_series.starting_time,
                                             rate=new_freq,
                                             description='Downsampled: ' + electrical_series.description)
-    nwbfile.add_acquisition(electrical_series_ds)
+    processing.add(electrical_series_ds)
     return Xds, electrical_series_ds

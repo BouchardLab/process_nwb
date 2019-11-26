@@ -63,7 +63,7 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
     return X_CAR
 
 
-def store_subtract_CAR(nwbfile, series_name, mean_frac=.95, round_func=np.ceil):
+def store_subtract_CAR(electrical_series, processing, mean_frac=.95, round_func=np.ceil):
     """
     Compute and subtract the common average (mean) reference across channels.
 
@@ -84,7 +84,6 @@ def store_subtract_CAR(nwbfile, series_name, mean_frac=.95, round_func=np.ceil):
     Xp : ndarray, (n_time, n_channels)
        Common average reference.
     """
-    electrical_series = nwbfile.acquisition[series_name]
     X = electrical_series.data[:]
     rate = electrical_series.rate
 
@@ -92,12 +91,17 @@ def store_subtract_CAR(nwbfile, series_name, mean_frac=.95, round_func=np.ceil):
     X_CAR = X - avg
 
     electrical_series_CAR = ElectricalSeries('CAR_' + electrical_series.name,
-                                             avg,
+                                             X_CAR,
                                              electrical_series.electrodes,
                                              starting_time=electrical_series.starting_time,
                                              rate=rate,
-                                             description=('CAR: ' +
+                                             description=('CARed: ' +
                                                           electrical_series.description))
+    CAR = ElectricalSeries('CAR', avg, electrical_series.electrodes,
+                           starting_time=electrical_series.starting_time,
+                           rate=rate,
+                           description=('CAR: ' + electrical_series.description))
 
-    nwbfile.add_acquisition(electrical_series_CAR)
+    processing.add(electrical_series_CAR)
+    processing.add(CAR)
     return X_CAR, electrical_series_CAR
