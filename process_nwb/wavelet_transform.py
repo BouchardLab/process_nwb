@@ -40,8 +40,8 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='default', X_fft_h=None,
-                      npad=100):
+def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
+                      constant_Q=False):
     """
     Apply bandpass filtering with wavelet transform using
     a prespecified set of filters.
@@ -62,6 +62,8 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None,
     X_fft_h : ndarray, complex
         Product of X_fft and heavyside.
     """
+    if npad is None:
+        npad = int(rate)
     if X_fft_h is None:
         npads, to_removes, _ = _npads(X, npad)
         X = _smart_pad(X, npads)
@@ -73,7 +75,10 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None,
     if filters == 'default':
         filters = []
         cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-        sds = const_Q_sds(cfs)
+        if constant_Q:
+            sds = const_Q_sds(cfs)
+        else:
+            raise NotImplementedError
         for cf, sd in zip(cfs, sds):
             filters.append(gaussian(n_time, rate, cf, sd))
 
@@ -100,8 +105,8 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None,
     return Xh, X_fft_h
 
 
-def store_wavelet_transform(nwbfile, series_name, filters='default',
-                            X_fft_h=None, npad=100, abs_only=True):
+def store_wavelet_transform(electrical_series, processing, npad=None, filters='default',
+                            X_fft_h=None, abs_only=True, constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
     a prespecified set of filters.
@@ -122,12 +127,13 @@ def store_wavelet_transform(nwbfile, series_name, filters='default',
     X_fft_h : ndarray, complex
         Product of X_ff and heavyside.
     """
-    electrical_series = nwbfile.acquisition[series_name]
     X = electrical_series.data[:]
     rate = electrical_series.rate
+    if npad is None:
+        npad = int(rate)
     X_wvlt, _ = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
-                                  npad=npad)
-    electrical_series_wvlt_amp = DecompositionSeries('wvlt_amp' + electrical_series.name,
+                                  npad=npad, constant_Q=constant_Q)
+    electrical_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + electrical_series.name,
                                                      abs(X_wvlt),
                                                      metric='amplitude',
                                                      source_timeseries=electrical_series,
@@ -137,7 +143,7 @@ def store_wavelet_transform(nwbfile, series_name, filters='default',
                                                                   electrical_series.description))
     series = [electrical_series_wvlt_amp]
     if not abs_only:
-        electrical_series_wvlt_phase = DecompositionSeries('wvlt_phase' + electrical_series.name,
+        electrical_series_wvlt_phase = DecompositionSeries('wvlt_phase_' + electrical_series.name,
                                                            np.angle(X_wvlt),
                                                            metric='phase',
                                                            source_timeseries=electrical_series,
@@ -150,12 +156,13 @@ def store_wavelet_transform(nwbfile, series_name, filters='default',
     for es in series:
         if filters == 'default':
             cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-            sds = const_Q_sds(cfs)
+            if constant_Q:
+                sds = const_Q_sds(cfs)
+            else:
+                raise NotImplementedError
             for ii , (cf, sd) in enumerate(zip(cfs, sds)):
                 es.add_band(band_name=str(ii), band_mean=cf,
                             band_stdev=sd, band_limits=(-1, -1))
 
-        nwbfile.add_acquisition(es)
-    if len(series) == 1:
-        series = series[0]
+        processing.add(es)
     return X_wvlt, series
