@@ -21,6 +21,7 @@ frequency = args.frequency
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
 for fname in files:
+    print('Processing {}'.format(fname))
     with NWBHDF5IO(fname, 'a') as io:
         nwbfile = io.read()
         electrical_series = nwbfile.acquisition['ElectricalSeries']
@@ -30,10 +31,14 @@ for fname in files:
         _, electrical_series_ds = store_resample(electrical_series,
                                                  nwbfile.processing['preprocessing'],
                                                  frequency)
+        del _
 
         _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
                                                       nwbfile.processing['preprocessing'])
+        del _
 
         _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
                                                             nwbfile.processing['preprocessing'])
+        del _
+
         io.write(nwbfile)
