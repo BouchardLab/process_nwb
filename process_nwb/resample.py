@@ -98,7 +98,7 @@ def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
     return y
 
 
-def resample(X, new_freq, old_freq, kind=1, same_sign=False, real=True):
+def resample(X, new_freq, old_freq, real=True, axis=0):
     """
     Resamples the ECoG signal from the original
     sampling frequency to a new frequency.
@@ -117,46 +117,28 @@ def resample(X, new_freq, old_freq, kind=1, same_sign=False, real=True):
     Xds : array
         Downsampled data, dimensions (n_time_new, ...)
     """
+    axis = axis % X.ndim
+    if axis != 0:
+        X = np.swapaxes(X, 0, axis)
     ratio = float(old_freq) / new_freq
-    if np.allclose(ratio, int(ratio)) and same_sign:
-        ratio = int(ratio)
-        if (ratio % 2) == 0:
-            med = ratio + 1
-        else:
-            med = ratio
-        meds = [1] * X.ndim
-        meds[0] = med
-        slices = [slice(None)] * X.ndim
-        slices[0] = slice(None, None, ratio)
-        Xds = sp.signal.medfilt(X, meds)[slices]
-    else:
-        n_time = X.shape[0]
-        new_n_time = int(np.ceil(n_time * new_freq / old_freq))
-        if kind == 0:
-            ratio = int(ratio)
-            if (ratio % 2) == 0:
-                med = ratio + 1
-            else:
-                med = ratio
-            meds = [1] * X.ndim
-            meds[0] = med
-            Xf = sp.signal.medfilt(X, meds)
-            f = sp.interpolate.interp1d(np.linspace(0, 1, n_time), Xf, axis=0)
-            Xds = f(np.linspace(0, 1, new_n_time))
-        else:
-            npad = int(max(new_freq, old_freq))
-            Xds = resample_func(X, new_n_time, npad=npad, real=real)
+
+    n_time = X.shape[0]
+    new_n_time = int(np.ceil(n_time * new_freq / old_freq))
+    npad = int(max(new_freq, old_freq))
+    Xds = resample_func(X, new_n_time, npad=npad, real=real)
+    if axis != 0:
+        X = np.swapaxes(X, 0, axis)
 
     return Xds
 
 
-def store_resample(electrical_series, processing, new_freq, kind=1, same_sign=False,
+def store_resample(electrical_series, processing, new_freq, axis=0,
                    scaling=1e6):
     new_freq = float(new_freq)
     X = electrical_series.data[:] * scaling
     old_freq = electrical_series.rate
 
-    Xds = resample(X, new_freq, old_freq, kind=kind, same_sign=same_sign)
+    Xds = resample(X, new_freq, old_freq, axis=axis)
 
     electrical_series_ds = ElectricalSeries('downsampled_' + electrical_series.name,
                                             Xds,

@@ -82,7 +82,8 @@ def _trim(X, to_removes):
 
 def _smart_pad(X, npads, pad='reflect_limited'):
     """Pad vector X."""
-    n_time, n_channels = X.shape
+    n_time = X.shape[0]
+    other_shape = X.shape[1:]
     npads = np.asarray(npads)
     assert npads.shape == (2,)
     if (npads == 0).all():
@@ -91,8 +92,8 @@ def _smart_pad(X, npads, pad='reflect_limited'):
         raise RuntimeError('npad must be non-negative')
     if pad == 'reflect_limited':
         # need to pad with zeros if len(x) <= npad
-        l_z_pad = np.zeros((max(npads[0] - len(X) + 1, 0), n_channels), dtype=X.dtype)
-        r_z_pad = np.zeros((max(npads[1] - len(X) + 1, 0), n_channels), dtype=X.dtype)
+        l_z_pad = np.zeros((max(npads[0] - len(X) + 1, 0),) + other_shape, dtype=X.dtype)
+        r_z_pad = np.zeros((max(npads[1] - len(X) + 1, 0),) + other_shape, dtype=X.dtype)
         return np.concatenate([l_z_pad, 2 * X[[0]] - X[npads[0]:0:-1], X,
                                2 * X[[-1]] - X[-2:-npads[1] - 2:-1], r_z_pad], axis=0)
     else:
