@@ -68,7 +68,7 @@ blocks = np.concatenate(blocks, axis=0)
 
 
 name = os.path.split(files[0])[1].split('_')[0]
-with h5py.File('{}.h5', 'w') as f:
+with h5py.File(os.path.join(folder, '{}.h5'.format(name)), 'w') as f:
     f.create_dataset('X', data=Xs.astype('float32'))
     f.create_dataset('y', data=ys)
     f.create_dataset('block', data=blocks)
