@@ -19,8 +19,14 @@ frequency = args.frequency
 files = sorted(glob.glob(os.path.join(folder, '*.nwb')))
 with NWBHDF5IO(files[0], 'r') as io:
     nwb = io.read()
-    bad_elects_orig = load_bad_electrodes(nwb)
+    bad_elects = load_bad_electrodes(nwb)
     electrode_labels = load_anatomy(nwb)
+good_elects = np.ones(bad_elects.shape, dtype=bool)
+
+for fname in sorted(files):
+    with NWBHDF5IO(fname, 'a') as io:
+        nwb = io.read()
+    good_elects *= ~load_bad_electrodes(nwb)
 
 precentral = np.array([ai == 'precentral' for ai in electrode_labels])
 postcentral = np.array([ai == 'postcentral' for ai in electrode_labels])
@@ -35,22 +41,19 @@ for fname in sorted(files):
     with NWBHDF5IO(fname, 'a') as io:
         nwb = io.read()
 
-        bad_elects = load_bad_electrodes(nwb)
         electrode_labels = load_anatomy(nwb)
         bad_times = load_bad_times(nwb)
         precentral = np.array([ai == 'precentral' for ai in electrode_labels])
         postcentral = np.array([ai == 'postcentral' for ai in electrode_labels])
         vsmc = np.logical_or(precentral, postcentral)
-        
+
         if not np.array_equal(vsmc, vsmc_orig):
             raise ValueError('vSMC mismatch across blocks', fname)
-        if not np.array_equal(bad_elects, bad_elects_orig):
-            raise ValueError('Bad electrode mismatch across blocks', fname)
 
         pre = nwb.processing['preprocessing']
         wvlt = pre.data_interfaces['wvlt_amp_CAR_ln_downsampled_ElectricalSeries'].data[:]
         old_rate = pre.data_interfaces['wvlt_amp_CAR_ln_downsampled_ElectricalSeries'].rate
-        wvlt = wvlt[:, np.logical_and(~bad_elects, vsmc)]
+        wvlt = wvlt[:, np.logical_and(good_elects, vsmc)]
         wvlt = resample(wvlt, frequency, old_rate)
 
         event_times, event_labels = get_speak_event(nwb, 1)
