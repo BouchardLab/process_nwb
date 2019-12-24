@@ -35,7 +35,7 @@ def hamming(n_time, rate, min_freq, max_freq):
 
 
 def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
-                      constant_Q=False):
+                      constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
     a prespecified set of filters.
