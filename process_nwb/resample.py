@@ -1,13 +1,8 @@
 import numpy as np
-import scipy as sp
 from pynwb.ecephys import ElectricalSeries
 
 from .utils import _npads, _smart_pad, _trim
-from .fft import fft, ifft, rfft, irfft, rfftfreq
-
-
-__all__ = ['resample',
-           'store_resample']
+from .fft import fft, ifft, rfft, irfft
 
 
 """
@@ -120,7 +115,6 @@ def resample(X, new_freq, old_freq, real=True, axis=0):
     axis = axis % X.ndim
     if axis != 0:
         X = np.swapaxes(X, 0, axis)
-    ratio = float(old_freq) / new_freq
 
     n_time = X.shape[0]
     new_n_time = int(np.ceil(n_time * new_freq / old_freq))
@@ -132,19 +126,19 @@ def resample(X, new_freq, old_freq, real=True, axis=0):
     return Xds
 
 
-def store_resample(electrical_series, processing, new_freq, axis=0,
+def store_resample(elec_series, processing, new_freq, axis=0,
                    scaling=1e6):
     new_freq = float(new_freq)
-    X = electrical_series.data[:] * scaling
-    old_freq = electrical_series.rate
+    X = elec_series.data[:] * scaling
+    old_freq = elec_series.rate
 
     Xds = resample(X, new_freq, old_freq, axis=axis)
 
-    electrical_series_ds = ElectricalSeries('downsampled_' + electrical_series.name,
-                                            Xds,
-                                            electrical_series.electrodes,
-                                            starting_time=electrical_series.starting_time,
-                                            rate=new_freq,
-                                            description='Downsampled: ' + electrical_series.description)
-    processing.add(electrical_series_ds)
-    return Xds, electrical_series_ds
+    elec_series_ds = ElectricalSeries('downsampled_' + elec_series.name,
+                                      Xds,
+                                      elec_series.electrodes,
+                                      starting_time=elec_series.starting_time,
+                                      rate=new_freq,
+                                      description='Downsampled: ' + elec_series.description)
+    processing.add(elec_series_ds)
+    return Xds, elec_series_ds

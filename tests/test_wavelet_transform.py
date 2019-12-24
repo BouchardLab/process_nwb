@@ -2,6 +2,7 @@ import numpy as np
 
 from process_nwb.wavelet_transform import wavelet_transform
 
+
 def test_wavelet_return():
     """
     Test the return shape and dtype.

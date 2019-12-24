@@ -7,23 +7,17 @@ from .utils import (_npads, _smart_pad, _trim,
 from pynwb.misc import DecompositionSeries
 
 
-__all__ = ['gaussian',
-           'hamming',
-           'wavelet_transform',
-           'store_wavelet_transform']
-
-
 def gaussian(n_time, rate, center, sd):
-    freq = fftfreq(n_time, 1./rate)
+    freq = fftfreq(n_time, 1. / rate)
 
-    k = np.exp((-(np.abs(freq) - center)**2)/(2 * (sd**2)))
+    k = np.exp((-(np.abs(freq) - center) ** 2) / (2 * (sd ** 2)))
     k /= np.linalg.norm(k)
 
     return k
 
 
 def hamming(n_time, rate, min_freq, max_freq):
-    freq = fftfreq(n_time, 1./rate)
+    freq = fftfreq(n_time, 1. / rate)
 
     pos_in_window = np.logical_and(freq >= min_freq, freq <= max_freq)
     neg_in_window = np.logical_and(freq <= -min_freq, freq >= -max_freq)
@@ -105,7 +99,7 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
     return Xh, X_fft_h
 
 
-def store_wavelet_transform(electrical_series, processing, npad=None, filters='default',
+def store_wavelet_transform(elec_series, processing, npad=None, filters='default',
                             X_fft_h=None, abs_only=True, constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
@@ -127,31 +121,31 @@ def store_wavelet_transform(electrical_series, processing, npad=None, filters='d
     X_fft_h : ndarray, complex
         Product of X_ff and heavyside.
     """
-    X = electrical_series.data[:]
-    rate = electrical_series.rate
+    X = elec_series.data[:]
+    rate = elec_series.rate
     if npad is None:
         npad = int(rate)
     X_wvlt, _ = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
                                   npad=npad, constant_Q=constant_Q)
-    electrical_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + electrical_series.name,
-                                                     abs(X_wvlt),
-                                                     metric='amplitude',
-                                                     source_timeseries=electrical_series,
-                                                     starting_time=electrical_series.starting_time,
+    elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
+                                               abs(X_wvlt),
+                                               metric='amplitude',
+                                               source_timeseries=elec_series,
+                                               starting_time=elec_series.starting_time,
+                                               rate=rate,
+                                               description=('Wavlet: ' +
+                                                            elec_series.description))
+    series = [elec_series_wvlt_amp]
+    if not abs_only:
+        elec_series_wvlt_phase = DecompositionSeries('wvlt_phase_' + elec_series.name,
+                                                     np.angle(X_wvlt),
+                                                     metric='phase',
+                                                     source_timeseries=elec_series,
+                                                     starting_time=elec_series.starting_time,
                                                      rate=rate,
                                                      description=('Wavlet: ' +
-                                                                  electrical_series.description))
-    series = [electrical_series_wvlt_amp]
-    if not abs_only:
-        electrical_series_wvlt_phase = DecompositionSeries('wvlt_phase_' + electrical_series.name,
-                                                           np.angle(X_wvlt),
-                                                           metric='phase',
-                                                           source_timeseries=electrical_series,
-                                                           starting_time=electrical_series.starting_time,
-                                                           rate=rate,
-                                                           description=('Wavlet: ' +
-                                                                        electrical_series.description))
-        series.append(electrical_series_wvlt_phase)
+                                                                  elec_series.description))
+        series.append(elec_series_wvlt_phase)
 
     for es in series:
         if filters == 'default':
@@ -160,7 +154,7 @@ def store_wavelet_transform(electrical_series, processing, npad=None, filters='d
                 sds = const_Q_sds(cfs)
             else:
                 raise NotImplementedError
-            for ii , (cf, sd) in enumerate(zip(cfs, sds)):
+            for ii, (cf, sd) in enumerate(zip(cfs, sds)):
                 es.add_band(band_name=str(ii), band_mean=cf,
                             band_stdev=sd, band_limits=(-1, -1))
 
