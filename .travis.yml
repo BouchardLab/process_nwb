@@ -12,7 +12,7 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment.yml flake8 codecov pytest-cov
+    - conda env create flake8 codecov pytest-cov -q -n test python=$TRAVIS_PYTHON_VERSION --file environment.yml
     - conda activate test
     #- pip install sphinx_rtd_theme
     - python setup.py build
