@@ -1,12 +1,6 @@
 import numpy as np
 
-import pynwb
 from pynwb.ecephys import ElectricalSeries
-
-
-__all__ = ['CAR',
-           'subtract_CAR',
-           'store_CAR']
 
 
 def CAR(X, mean_frac=.95, round_func=np.ceil):
@@ -63,7 +57,7 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
     return X_CAR
 
 
-def store_subtract_CAR(electrical_series, processing, mean_frac=.95, round_func=np.ceil):
+def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil):
     """
     Compute and subtract the common average (mean) reference across channels.
 
@@ -84,24 +78,24 @@ def store_subtract_CAR(electrical_series, processing, mean_frac=.95, round_func=
     Xp : ndarray, (n_time, n_channels)
        Common average reference.
     """
-    X = electrical_series.data[:]
-    rate = electrical_series.rate
+    X = elec_series.data[:]
+    rate = elec_series.rate
 
     avg = CAR(X, mean_frac=mean_frac, round_func=round_func)
     X_CAR = X - avg
 
-    electrical_series_CAR = ElectricalSeries('CAR_' + electrical_series.name,
-                                             X_CAR,
-                                             electrical_series.electrodes,
-                                             starting_time=electrical_series.starting_time,
-                                             rate=rate,
-                                             description=('CARed: ' +
-                                                          electrical_series.description))
-    CAR = ElectricalSeries('CAR', avg, electrical_series.electrodes,
-                           starting_time=electrical_series.starting_time,
-                           rate=rate,
-                           description=('CAR: ' + electrical_series.description))
+    elec_series_CAR = ElectricalSeries('CAR_' + elec_series.name,
+                                       X_CAR,
+                                       elec_series.electrodes,
+                                       starting_time=elec_series.starting_time,
+                                       rate=rate,
+                                       description=('CARed: ' +
+                                                    elec_series.description))
+    CAR_series = ElectricalSeries('CAR', avg, elec_series.electrodes,
+                                  starting_time=elec_series.starting_time,
+                                  rate=rate,
+                                  description=('CAR: ' + elec_series.description))
 
-    processing.add(electrical_series_CAR)
-    processing.add(CAR)
-    return X_CAR, electrical_series_CAR
+    processing.add(elec_series_CAR)
+    processing.add(CAR_series)
+    return X_CAR, elec_series_CAR

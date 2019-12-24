@@ -1,11 +1,6 @@
 import numpy as np
 
 
-__all__ = ['nans',
-           'is_overlap',
-           'is_in']
-
-
 def log_spaced_cfs(fmin, fmax, ncfs):
     """
     Center frequencies that are uniform in log space
@@ -14,7 +9,8 @@ def log_spaced_cfs(fmin, fmax, ncfs):
 
 
 def const_Q_sds(cfs, Q=8):
-    return cfs/Q
+    return cfs / Q
+
 
 """
 The following code is based on MNE-Python
@@ -80,14 +76,15 @@ def _trim(X, to_removes):
         X = X[to_removes[0]:n_times - to_removes[1]]
     return X
 
+
 def _smart_pad(X, npads, pad='reflect_limited'):
-    """Pad vector X."""
-    n_time = X.shape[0]
+    """Pad vector X.
+    """
     other_shape = X.shape[1:]
     npads = np.asarray(npads)
     assert npads.shape == (2,)
     if (npads == 0).all():
-        return x
+        return X
     elif (npads < 0).any():
         raise RuntimeError('npad must be non-negative')
     if pad == 'reflect_limited':

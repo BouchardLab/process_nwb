@@ -16,8 +16,8 @@ def test_frequency_specificity():
     """Test that multiples of 60 Hz are removed and other frequencies are not
     highly filtered.
     """
-    dt = 50. # seconds
-    rate = 400. # Hz
+    dt = 50.  # seconds
+    rate = 400.  # Hz
     t = np.linspace(0, dt, int(dt * rate))
     t = np.tile(t[:, np.newaxis], (1, 5))
     n_harmonics = int((rate / 2.) // 60)
