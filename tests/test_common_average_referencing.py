@@ -13,7 +13,7 @@ def test_CAR():
     X[:, 0] = -100
     X[:, -1] = 111
     ninety_five = CAR(X)
-    assert_allclose(mean, 49.5)
+    assert_allclose(ninety_five, 49.5)
 
 
 def test_subtract_CAR():
