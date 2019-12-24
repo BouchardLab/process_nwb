@@ -1,3 +1,6 @@
+channels:
+  - conda-forge
 dependencies:
   - numpy
   - scipy
+  - pynwb
