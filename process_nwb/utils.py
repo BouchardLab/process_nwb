@@ -16,6 +16,11 @@ def log_spaced_cfs(fmin, fmax, ncfs):
 def const_Q_sds(cfs, Q=8):
     return cfs/Q
 
+
+def chang_sds(cfs):
+    scale=0.39
+    return 10. ** ( np.log10(scale) + .5 * (np.log10(cfs))) * np.sqrt(2.)
+
 """
 The following code is based on MNE-Python
 

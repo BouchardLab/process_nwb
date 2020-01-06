@@ -2,7 +2,8 @@ import numpy as np
 
 from .fft import fftfreq, fft, ifft
 from .utils import (_npads, _smart_pad, _trim,
-                    log_spaced_cfs, const_Q_sds)
+                    log_spaced_cfs, const_Q_sds,
+                    chang_sds)
 
 from pynwb.misc import DecompositionSeries
 
@@ -81,6 +82,14 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
             raise NotImplementedError
         for cf, sd in zip(cfs, sds):
             filters.append(gaussian(n_time, rate, cf, sd))
+    elif filters == 'chang':
+        filters = []
+        cfs = log_spaced_cfs(4.0749286538265, 200, 40)
+        sds = chang_sds(cfs)
+        for cf, sd in zip(cfs, sds):
+            filters.append(gaussian(n_time, rate, cf, sd))
+    else:
+        raise NotImplementedError
 
     if not isinstance(filters, list):
         filters = [filters]
