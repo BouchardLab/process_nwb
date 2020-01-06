@@ -4,6 +4,7 @@ from scipy.spatial.distance import cosine
 
 from process_nwb.resample import resample
 
+
 def test_resample_shape():
     X = np.random.randn(2000, 32)
 
@@ -27,8 +28,8 @@ def test_resample_ones():
 def test_resample_low_freqs():
     """Resampling should now impact low frequencies.
     """
-    dt = 40. # seconds
-    rate = 400. # Hz
+    dt = 40.  # seconds
+    rate = 400.  # Hz
     t = np.linspace(0, dt, int(dt * rate))
     t = np.tile(t[:, np.newaxis], (1, 5))
     freqs = np.linspace(1, 5.33, 20.1)
@@ -37,7 +38,7 @@ def test_resample_low_freqs():
     for f in freqs:
         X += np.sin(2 * np.pi * f * t)
 
-    new_rate = 211. # Hz
+    new_rate = 211.  # Hz
     t = np.linspace(0, dt, int(dt * new_rate))
     t = np.tile(t[:, np.newaxis], (1, 5))
     X_new_rate = np.zeros_like(t)

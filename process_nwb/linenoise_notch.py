@@ -5,15 +5,13 @@ from .fft import rfftfreq, rfft, irfft
 from .utils import _npads, _smart_pad, _trim
 
 
-__all__ = ['apply_linenoise_notch']
-
 def apply_notches(X, notches, rate, fft=True):
     delta = 1.
     if fft:
         fs = rfftfreq(X.shape[0], 1. / rate)
         fd = rfft(X, axis=0)
     else:
-        nyquist = rate/2.
+        nyquist = rate / 2.
         n_taps = 1001
         gain = [1, 1, 0, 0, 1, 1]
     for notch in notches:
@@ -21,10 +19,10 @@ def apply_notches(X, notches, rate, fft=True):
             window_mask = np.logical_and(fs > notch - delta, fs < notch + delta)
             window_size = window_mask.sum()
             window = np.hamming(window_size)
-            fd[window_mask] = fd[window_mask] * (1.-window)[:, np.newaxis]
+            fd[window_mask] = fd[window_mask] * (1. - window)[:, np.newaxis]
         else:
-            freq = np.array([0, notch-delta, notch-delta/2.,
-                             notch+delta/2, notch+delta, nyquist]) / nyquist
+            freq = np.array([0, notch - delta, notch - delta / 2.,
+                             notch + delta / 2., notch + delta, nyquist]) / nyquist
             filt = firwin2(n_taps, freq, gain)
             X = filtfilt(filt, np.array([1]), X, axis=0)
     if fft:
