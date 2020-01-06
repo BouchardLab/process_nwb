@@ -21,7 +21,9 @@ setup(
     name='process_nwb',
     description='ECoG preprocessing scripts for NWB files.',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     version='0.1.0',
     author='Jesse Livezey',
     author_email='jesse.livezey@gmail.com',
+    packages=find_packages()
     )
