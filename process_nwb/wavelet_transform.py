@@ -35,7 +35,7 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='default', bands_vals=np.logspace(np.log10(4.0749286538265), np.log10(200), 40), X_fft_h=None, npad=None,
+def wavelet_transform(X, rate, filters='default', bands_vals_c=np.logspace(np.log10(4.0749286538265), np.log10(200), 40), X_fft_h=None, npad=None,
                       constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
@@ -69,7 +69,7 @@ def wavelet_transform(X, rate, filters='default', bands_vals=np.logspace(np.log1
 
     if filters == 'default':
         filters = []
-        cfs = bands_vals[0,:]
+        cfs = bands_vals_c
         if constant_Q:
             sds = const_Q_sds(cfs)
         else:
@@ -78,7 +78,7 @@ def wavelet_transform(X, rate, filters='default', bands_vals=np.logspace(np.log1
             filters.append(gaussian(n_time, rate, cf, sd))
     elif filters == 'chang':
         filters = []
-        cfs = bands_vals[0,:]
+        cfs = bands_vals_c
         sds = chang_sds(cfs)
         for cf, sd in zip(cfs, sds):
             filters.append(gaussian(n_time, rate, cf, sd))
