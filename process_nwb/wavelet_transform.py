@@ -35,7 +35,7 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='default', bands_vals_c=log_spaced_cfs(4.0749286538265, 200, 40), X_fft_h=None, npad=None,
+def wavelet_transform(X, rate, bands_vals_c, filters='default', X_fft_h=None, npad=None,
                       constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
@@ -134,7 +134,8 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='default
     rate = elec_series.rate
     if npad is None:
         npad = int(rate)
-    X_wvlt, _ = wavelet_transform(X, rate, filters=filters, bands_vals_c=log_spaced_cfs(4.0749286538265, 200, 40), X_fft_h=X_fft_h,
+    bands_vals_c = log_spaced_cfs(4.0749286538265, 200, 40)
+    X_wvlt, _ = wavelet_transform(X, rate, bands_vals_c=bands_vals_c, filters=filters, X_fft_h=X_fft_h,
                                   npad=npad, constant_Q=constant_Q)
     elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
                                                abs(X_wvlt),
