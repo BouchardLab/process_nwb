@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 
+from process_nwb.utils import log_spaced_cfs
+
 from process_nwb.wavelet_transform import (wavelet_transform,
                                            gaussian,
                                            hamming)
