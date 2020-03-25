@@ -35,7 +35,7 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='default', bands_vals_c=np.logspace(np.log10(4.0749286538265), np.log10(200), 40), X_fft_h=None, npad=None,
+def wavelet_transform(X, rate, filters='default', bands_vals_c=log_spaced_cfs(4.0749286538265, 200, 40), X_fft_h=None, npad=None,
                       constant_Q=True):
     """
     Apply bandpass filtering with wavelet transform using
