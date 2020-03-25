@@ -11,7 +11,8 @@ def test_wavelet_return():
     """
     X = np.random.randn(1000, 32)
     rate = 200
-    Xh, _ = wavelet_transform(X, rate)
+    bands_vals_c = log_spaced_cfs(4.0749286538265, 200, 40)
+    Xh, _ = wavelet_transform(X, rate, bands_vals_c=bands_vals_c)
     assert Xh.shape == (X.shape[0], X.shape[1], 40)
     assert Xh.dtype == np.complex
 
