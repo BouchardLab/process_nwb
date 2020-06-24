@@ -10,11 +10,12 @@ from process_nwb import store_linenoise_notch_CAR
 parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\nPerforms the following steps:' +
                                  '\n1) Resample to frequency and store result,' +
-                                 '\n2) Remove and store the CAR and remove 60Hz noise, and' +
+                                 '\n2) Remove 60Hz noise and remove and store the CAR, and' +
                                  '\n3) Perform and store a wavelet decomposition.')
 parser.add_argument('folder', type=str, help='Folder')
 parser.add_argument('--frequency', type=float, default=400., help='Frequency to resample to.')
-parser.add_argument('--filters', type=str, default='default', help='Type of filter bank to use for wavelets.')
+parser.add_argument('--filters', type=str, default='default',
+                    help='Type of filter bank to use for wavelets.')
 args = parser.parse_args()
 
 folder = args.folder
@@ -36,7 +37,7 @@ for fname in files:
         del _
 
         _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
-                                                      nwbfile.processing['preprocessing'])
+                                                             nwbfile.processing['preprocessing'])
         del _
 
         _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
