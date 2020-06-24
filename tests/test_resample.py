@@ -32,7 +32,7 @@ def test_resample_low_freqs():
     rate = 400.  # Hz
     t = np.linspace(0, dt, int(dt * rate))
     t = np.tile(t[:, np.newaxis], (1, 5))
-    freqs = np.linspace(1, 5.33, 20.1)
+    freqs = np.linspace(1, 5.33, 20)
 
     X = np.zeros_like(t)
     for f in freqs:
