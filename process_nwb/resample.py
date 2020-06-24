@@ -43,10 +43,8 @@ def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
     ----------
     X : ndarray, (n_time, ...)
         Signal to resample.
-    up : float
-        Factor to upsample by.
-    down : float
-        Factor to downsample by.
+    num : int
+        Number of samples in resampled signal.
     npad : int
         Padding to add to beginning and end of timeseries.
     pad : str
@@ -95,8 +93,7 @@ def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
 
 def resample(X, new_freq, old_freq, real=True, axis=0):
     """
-    Resamples the ECoG signal from the original
-    sampling frequency to a new frequency.
+    Resamples the ECoG signal from the original sampling frequency to a new frequency.
 
     Parameters
     ----------
@@ -126,19 +123,42 @@ def resample(X, new_freq, old_freq, real=True, axis=0):
     return Xds
 
 
-def store_resample(elec_series, processing, new_freq, axis=0,
-                   scaling=1e6):
+def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6):
+    """Resamples the ECoG signal from the original sampling frequency to a new frequency and store
+    the results in a new ElectricalSeries.
+
+    Parameters
+    ----------
+    elec_series : ElectricalSeries
+        ElectricalSeries to process.
+    processing : Processing module
+        NWB Processing module to save processed data.
+    new_freq : float
+        New sampling frequency
+    axis : int
+        Which axis to downsample. Default is 0.
+    scaling : float
+        Scale the values by this. Can help with accuracy of downstream operations if the raw values
+        are too small.
+
+    Returns
+    -------
+    X_ds : ndarray, (n_time_new, ...)
+        Downsampled data.
+    elec_series_ds : ElectricalSeries
+        ElectricalSeries that holds X_ds.
+    """
     new_freq = float(new_freq)
     X = elec_series.data[:] * scaling
     old_freq = elec_series.rate
 
-    Xds = resample(X, new_freq, old_freq, axis=axis)
+    X_ds = resample(X, new_freq, old_freq, axis=axis)
 
     elec_series_ds = ElectricalSeries('downsampled_' + elec_series.name,
-                                      Xds,
+                                      X_ds,
                                       elec_series.electrodes,
                                       starting_time=elec_series.starting_time,
                                       rate=new_freq,
                                       description='Downsampled: ' + elec_series.description)
     processing.add(elec_series_ds)
-    return Xds, elec_series_ds
+    return X_ds, elec_series_ds

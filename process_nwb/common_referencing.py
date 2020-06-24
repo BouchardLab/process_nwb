@@ -75,8 +75,10 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
 
     Returns
     -------
-    Xp : ndarray, (n_time, n_channels)
-       Common average reference.
+    X_CAR : ndarray, (n_time, n_channels)
+       X with CAR removed.
+    elec_series_CAR : ElectricalSeries
+        ElectricalSeries that holds X_CAR.
     """
     X = elec_series.data[:]
     rate = elec_series.rate

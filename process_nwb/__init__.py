@@ -7,6 +7,27 @@ from .linenoise_notch import apply_linenoise_notch
 
 
 def store_linenoise_notch_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil):
+    """Apply a notch filter at 60 Hz and its harmonics, calculate and remove the common average
+    reference (CAR), then store the signal and the CAR.
+
+    Parameters
+    ----------
+    elec_series : ElectricalSeries
+        ElectricalSeries to process.
+    processing : Processing module
+        NWB Processing module to save processed data.
+    mean_frac : float
+        Fraction of the data to be taken in the mean. 0. < mean_frac <= 1.
+    round_func : callable
+        Function for rounding the fraction of channels.
+
+    Returns
+    -------
+    X_CAR_ln : ndarray, (n_time, n_channels)
+        Data with line noise and CAR removed.
+    elec_series_CAR_ln : ElectricalSeries
+        ElectricalSeries that holds X_CAR_ln.
+    """
     rate = elec_series.rate
     X = elec_series.data[:]
 

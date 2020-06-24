@@ -5,7 +5,7 @@ from .fft import rfftfreq, rfft, irfft
 from .utils import _npads, _smart_pad, _trim
 
 
-def apply_notches(X, notches, rate, fft=True):
+def _apply_notches(X, notches, rate, fft=True):
     delta = 1.
     if fft:
         fs = rfftfreq(X.shape[0], 1. / rate)
@@ -31,20 +31,19 @@ def apply_notches(X, notches, rate, fft=True):
 
 
 def apply_linenoise_notch(X, rate, fft=True):
-    """
-    Apply Notch filter at 60 Hz and its harmonics
+    """Apply Notch filter at 60 Hz and its harmonics.
 
     Parameters
     ----------
-    X : array
-        Input data, dimensions (n_channels, n_timePoints)
+    X : ndarray, (n_time, n_channels)
+        Input data.
     rate : float
-        Number of samples per second
+        Number of samples per second for X.
 
     Returns
     -------
-    X : array
-        Denoised data, dimensions (n_channels, n_timePoints)
+    X : ndarray, (n_time, n_channels)
+        Notch filtered data data, dimensions
     """
 
     nyquist = rate / 2.
@@ -56,6 +55,6 @@ def apply_linenoise_notch(X, rate, fft=True):
     npads, to_removes, _ = _npads(X, npad)
     X = _smart_pad(X, npads)
 
-    Xp = apply_notches(X, notches, rate, fft=fft)
+    Xp = _apply_notches(X, notches, rate, fft=fft)
     Xp = _trim(Xp, to_removes)
     return Xp
