@@ -1,19 +1,26 @@
-.. DynamicalComponentsAnalysis
+.. process_nwb
 
 ============
 Installation
 ============
 
-Dynamical Components Analysis (DCA) is available for Python 3. The latest development version
-of the code can be installed from https://github.com/BouchardLab/DynamicalComponentsAnalysis
+process_nwb is available for Python 3 and available on PyPI.
+
+
+.. code-block:: bash
+
+    $ pip install process-nwb
+
+The latest development version
+of the code can be installed from https://github.com/BouchardLab/process_nwb
 
 .. code-block:: bash
 
     # use ssh
-    $ git clone git@github.com:BouchardLab/DynamicalComponentsAnalysis.git
+    $ git clone git@github.com:BouchardLab/process_nwb.git
     # or use https
-    $ git clone https://github.com/BouchardLab/DynamicalComponentsAnalysis.git
-    $ cd DynamicalComponentsAnalysis
+    $ git clone https://github.com/BouchardLab/process_nwb.git
+    $ cd process_nwb
 
 To install into an active conda environment
 
@@ -38,17 +45,15 @@ PyUoI requires
 
   * numpy
   * scipy
-  * h5py
-  * pandas
-  * scikit-learn
-  * pytorch
+  * pynwb
+  * mkl_fft
 
 to run.
 
 Develop
 ^^^^^^^
 
-To develop DCA you will additionally need
+To develop process_nwb you will additionally need
 
   * pytest
   * flake8

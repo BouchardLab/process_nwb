@@ -1,5 +1,5 @@
 ====================
-process_nwb.resample
+Resampling
 ====================
 
 .. automodule:: process_nwb.resample

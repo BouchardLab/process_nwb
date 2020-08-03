@@ -1,5 +1,5 @@
 ==============================
-process_nwb.common_referencing
+Common Referencing
 ==============================
 
 .. automodule:: process_nwb.common_referencing
