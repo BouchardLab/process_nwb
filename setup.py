@@ -17,13 +17,12 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-setup(
-    name='process_nwb',
-    description='ECoG preprocessing scripts for NWB files.',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    version='0.1.0',
-    author='Jesse Livezey',
-    author_email='jesse.livezey@gmail.com',
-    packages=find_packages()
-    )
+setup(name='process_nwb',
+      description='ECoG preprocessing scripts for NWB files.',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
+      version='0.1.0',
+      author='Jesse Livezey',
+      author_email='jesse.livezey@gmail.com',
+      packages=find_packages(),
+      scripts=['scripts/preprocess_folder.py'])
