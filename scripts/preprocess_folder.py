@@ -1,3 +1,4 @@
+#! /user/bin/env python
 import argparse, glob, os
 
 from pynwb import NWBHDF5IO

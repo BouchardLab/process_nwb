@@ -1,5 +1,5 @@
 =============================
-process_nwb.wavelet_transform
+Wavelet Transform
 =============================
 
 .. automodule:: process_nwb.wavelet_transform

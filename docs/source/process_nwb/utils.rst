@@ -1,5 +1,5 @@
 =================
-process_nwb.utils
+Utilities
 =================
 
 .. automodule:: process_nwb.utils
