@@ -20,6 +20,7 @@ install:
     - python setup.py develop
 script:
     - flake8 process_nwb tests
+    - process_folder -h
     - pytest -sv --cov=./ tests
     - sphinx-build -W -b html docs/source docs/build
 after_success:
