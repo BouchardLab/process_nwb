@@ -13,6 +13,7 @@ install:
     - conda info -a
     - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment.yml
     - conda activate test
+    - conda list
     - conda install flake8 codecov pytest-cov
     - pip install sphinx_rtd_theme
     - python setup.py build
