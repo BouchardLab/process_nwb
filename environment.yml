@@ -1,7 +1,7 @@
-channels:
-  - conda-forge
 dependencies:
   - numpy
   - scipy
-  - pynwb
   - mkl_fft
+  - pip
+  - pip:
+    - pynwb
