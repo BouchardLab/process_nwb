@@ -46,8 +46,15 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         Input data, dimensions
     rate : float
         Number of samples per second.
-    filters : filter or list of filters (optional)
-        One or more bandpass filters
+    filters : str (optional)
+        Which type of filters to use. Options are
+        'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
+        'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
+        'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
+    hg_only : bool
+        If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
+    X_fft_h : ndarray (n_time, n_channels)
+        Precomputed product of X_fft and heavyside.
 
     Returns
     -------
@@ -112,7 +119,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
 
 
 def store_wavelet_transform(elec_series, processing, npad=None, filters='rat',
-                            X_fft_h=None, abs_only=True, hg_only=True):
+                            hg_only=True, X_fft_h=None, abs_only=True):
     """
     Apply bandpass filtering with wavelet transform using
     a prespecified set of filters.
@@ -123,14 +130,17 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='rat',
         Input data, dimensions
     rate : float
         Number of samples per second.
-    filters : filter or list of filters (optional)
-        One or more bandpass filters
+    filters : str (optional)
+        Which type of filters to use. Options are
+        'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
+        'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
+        'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
+    hg_only : bool
+        If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
     X_fft_h : ndarray (n_time, n_channels)
         Precomputed product of X_fft and heavyside.
     abs_only : bool
         If True, only the amplitude is stored.
-    hg_only : bool
-        If True, only the amplitudes in the high gamma range is computed.
 
     Returns
     -------
