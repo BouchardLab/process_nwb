@@ -15,13 +15,16 @@ parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\n3) Perform and store a wavelet decomposition.')
 parser.add_argument('folder', type=str, help='Folder')
 parser.add_argument('--frequency', type=float, default=400., help='Frequency to resample to.')
-parser.add_argument('--filters', type=str, default='default',
+parser.add_argument('--filters', type=str, default='rat',
+                    choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
+parser.add_argument('--all_filters', action='store_false')
 args = parser.parse_args()
 
 folder = args.folder
 frequency = args.frequency
 filters = args.filters
+hg_only = ~args.all_filters
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
 for fname in files:
@@ -43,7 +46,8 @@ for fname in files:
 
         _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
                                                             nwbfile.processing['preprocessing'],
-                                                            filters=filters)
+                                                            filters=filters,
+                                                            hg_only=hg_only)
         del _
 
         io.write(nwbfile)
