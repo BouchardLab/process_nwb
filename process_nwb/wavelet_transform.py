@@ -9,6 +9,19 @@ from pynwb.misc import DecompositionSeries
 
 
 def gaussian(n_time, rate, center, sd):
+    """Generates a normalized gaussian kernel.
+
+    Parameters
+    ----------
+    n_time : int
+        Number of samples
+    rate : float
+        Sampling rate of kernel (Hz).
+    center : float
+        Center frequency (Hz).
+    sd : float
+        Bandwidth (Hz).
+    """
     freq = fftfreq(n_time, 1. / rate)
 
     k = np.exp((-(np.abs(freq) - center) ** 2) / (2 * (sd ** 2)))
@@ -18,6 +31,19 @@ def gaussian(n_time, rate, center, sd):
 
 
 def hamming(n_time, rate, min_freq, max_freq):
+    """Generates a normalized Hamming kernel.
+
+    Parameters
+    ----------
+    n_time : int
+        Number of samples
+    rate : float
+        Sampling rate of kernel (Hz).
+    min_freq : float
+        Band minimum frequency (Hz).
+    max_freq : float
+        Band maximum frequency (Hz).
+    """
     freq = fftfreq(n_time, 1. / rate)
 
     pos_in_window = np.logical_and(freq >= min_freq, freq <= max_freq)
@@ -36,9 +62,10 @@ def hamming(n_time, rate, min_freq, max_freq):
 
 
 def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=None):
-    """
-    Apply bandpass filtering with wavelet transform using
-    a prespecified set of filters.
+    """Apply a wavelet transform using a prespecified set of filters.
+
+    Calculates the center frequencies and bandwidths for the wavelets and applies them along with
+    a heavyside function to the fft of the signal before performing an inverse fft.
 
     Parameters
     ----------
@@ -54,7 +81,10 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
     hg_only : bool
         If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
     X_fft_h : ndarray (n_time, n_channels)
-        Precomputed product of X_fft and heavyside.
+        Precomputed product of X_fft and heavyside. Useful for when bands are computed
+        independently.
+    npad : int
+        Length of padding in samples.
 
     Returns
     -------
@@ -62,6 +92,10 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         Bandpassed analytic signal
     X_fft_h : ndarray, complex
         Product of X_fft and heavyside.
+    cfs : ndarray
+        Center frequencies used.
+    sds : ndarray
+        Bandwidths used.
     """
     if npad is None:
         npad = int(rate)
@@ -118,18 +152,21 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
     return Xh, X_fft_h, cfs, sds
 
 
-def store_wavelet_transform(elec_series, processing, npad=None, filters='rat',
-                            hg_only=True, X_fft_h=None, abs_only=True):
-    """
-    Apply bandpass filtering with wavelet transform using
-    a prespecified set of filters.
+def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
+                            abs_only=True, npad=None):
+    """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
+    NWB file as a `DecompositionSeries`.
+
+    Calculates the center frequencies and bandwidths for the wavelets and applies them along with
+    a heavyside function to the fft of the signal before performing an inverse fft. The center
+    frequencies and bandwidths are also stored in the NWB file.
 
     Parameters
     ----------
-    X : ndarray (n_time, n_channels)
-        Input data, dimensions
-    rate : float
-        Number of samples per second.
+    elec_series : ElectricalSeries
+        ElectricalSeries to process.
+    processing : Processing module
+        NWB Processing module to save processed data.
     filters : str (optional)
         Which type of filters to use. Options are
         'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
@@ -141,13 +178,15 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='rat',
         Precomputed product of X_fft and heavyside.
     abs_only : bool
         If True, only the amplitude is stored.
+    npad : int
+        Length of padding in samples.
 
     Returns
     -------
-    Xh : ndarray, complex
-        Bandpassed analytic signal
-    X_fft_h : ndarray, complex
-        Product of X_fft and heavyside.
+    X_wvlt : ndarray, complex
+        Complex wavelet coefficients.
+    series : list of DecompositionSeries
+        List of NWB objects.
     """
     X = elec_series.data[:]
     rate = elec_series.rate

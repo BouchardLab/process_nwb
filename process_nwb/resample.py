@@ -6,7 +6,7 @@ from .fft import fft, ifft, rfft, irfft
 
 
 """
-The fft resampling code is based on MNE-Python
+The `resample_func` code is based on MNE-Python
 
 Copyright © 2011-2019, authors of MNE-Python
 All rights reserved.
@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
-    """Resample an array.
-    Operates along the last dimension of the array.
+    """Resample an array. Operates along the first dimension of the array. This is the low-level
+    code. Users shoud likely use `resample()` rather than this function.
 
     Parameters
     ----------
@@ -49,6 +49,8 @@ def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
         Padding to add to beginning and end of timeseries.
     pad : str
         Type of padding. The default is ``'reflect_limited'``.
+    real : bool
+        Whether rfft should be used for resampling or fft.
 
     Returns
     -------
@@ -92,17 +94,20 @@ def resample_func(X, num, npad=100, pad='reflect_limited', real=True):
 
 
 def resample(X, new_freq, old_freq, real=True, axis=0):
-    """
-    Resamples the ECoG signal from the original sampling frequency to a new frequency.
+    """Resamples the timeseries from the original sampling frequency to a new frequency.
 
     Parameters
     ----------
-    X : ndarray, (n_time, ...)
+    X : ndarray
         Input timeseries.
     new_freq : float
         New sampling frequency
     old_freq : float
         Original sampling frequency
+    real : bool
+        Whether rfft should be used for resampling or fft.
+    axis : int
+        Which axis to resample.
 
     Returns
     -------
@@ -124,8 +129,8 @@ def resample(X, new_freq, old_freq, real=True, axis=0):
 
 
 def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6):
-    """Resamples the ECoG signal from the original sampling frequency to a new frequency and store
-    the results in a new ElectricalSeries.
+    """Resamples the `ElectricalSeries` from the original sampling frequency to a new frequency and
+    store the results in a new ElectricalSeries.
 
     Parameters
     ----------

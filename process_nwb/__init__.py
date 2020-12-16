@@ -8,7 +8,7 @@ from .linenoise_notch import apply_linenoise_notch
 
 def store_linenoise_notch_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil):
     """Apply a notch filter at 60 Hz and its harmonics, calculate and remove the common average
-    reference (CAR), then store the signal and the CAR.
+    reference (CAR), and finally store the signal and the CAR.
 
     Parameters
     ----------

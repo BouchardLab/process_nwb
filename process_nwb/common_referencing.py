@@ -4,8 +4,7 @@ from pynwb.ecephys import ElectricalSeries
 
 
 def CAR(X, mean_frac=.95, round_func=np.ceil):
-    """
-    Compute the common average (mean) reference across channels.
+    """Compute the common average reference across channels.
 
     Parameters
     ----------
@@ -13,7 +12,8 @@ def CAR(X, mean_frac=.95, round_func=np.ceil):
         Input timeseries.
     mean_frac : float
         Fraction of the channels to include in the mean. Between 0 and 1.
-        mean_frac must include at least one channel.
+        `mean_frac` must include at least one channel. `mean_frac = 1` is equivalent to the mean.
+        Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
 
@@ -35,8 +35,7 @@ def CAR(X, mean_frac=.95, round_func=np.ceil):
 
 
 def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
-    """
-    Compute and subtract the common average (mean) reference across channels.
+    """Compute and subtract the common average (mean) reference across channels.
 
     Parameters
     ----------
@@ -44,7 +43,8 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
         Input timeseries.
     mean_frac : float
         Fraction of the channels to include in the mean. Between 0 and 1.
-        mean_frac must include at least one channel.
+        `mean_frac` must include at least one channel. `mean_frac = 1` is equivalent to the mean.
+        Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
 
@@ -58,18 +58,18 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
 
 
 def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil):
-    """
-    Compute and subtract the common average (mean) reference across channels.
+    """Compute and subtract the common average (mean) reference across channels.
 
     Parameters
     ----------
-    X : ndarray, (n_time, n_channels)
-        Input timeseries.
-    nwb : NWBFile
-        NWBFile to write to.
+    elec_series : ElectricalSeries
+        ElectricalSeries to process.
+    processing : Processing module
+        NWB Processing module to save processed data.
     mean_frac : float
         Fraction of the channels to include in the mean. Between 0 and 1.
-        mean_frac must include at least one channel.
+        `mean_frac` must include at least one channel. `mean_frac = 1` is equivalent to the mean.
+        Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
 
