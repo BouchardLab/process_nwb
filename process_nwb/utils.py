@@ -2,17 +2,43 @@ import numpy as np
 
 
 def log_spaced_cfs(fmin, fmax, ncfs):
-    """
-    Center frequencies that are uniform in log space
+    """Return log-spaced center frequencies.
+
+    Parameters
+    ----------
+    fmin : float
+        Minimum center frequency.
+    fmax : float
+        Maximum center frequency.
+    ncfs : int
+        Number of bands to generate.
     """
     return np.logspace(np.log10(fmin), np.log10(fmax), ncfs)
 
 
 def const_Q_sds(cfs, Q=8):
+    """Compute constant Q bandwidths for a set of center frequencies.
+
+    Parameters
+    ----------
+    cfs : ndarray
+        Center frequencies.
+    Q : float
+        Q value for the wavelet. Default = 8.
+    """
     return cfs / Q
 
 
 def chang_sds(cfs):
+    """Compute variable bandwidths for a set of center frequencies used by the Chang lab.
+
+    Parameters
+    ----------
+    cfs : ndarray
+        Center frequencies.
+    Q : float
+        Q value for the wavelet. Default = 8.
+    """
     scale = 0.39
     return 10. ** (np.log10(scale) + .5 * (np.log10(cfs))) * np.sqrt(2.)
 
@@ -48,6 +74,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 def _npads(X, npad, ratio=1.):
+    """Calculate padding parameters.
+    """
     n_time = X.shape[0]
     bad_msg = 'npad must be "auto" or an integer'
     if isinstance(npad, str):
@@ -76,6 +104,8 @@ def _npads(X, npad, ratio=1.):
 
 
 def _trim(X, to_removes):
+    """Trim the padding.
+    """
     if (to_removes > 0).any():
         n_times = X.shape[0]
         X = X[to_removes[0]:n_times - to_removes[1]]
