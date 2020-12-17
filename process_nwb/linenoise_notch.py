@@ -48,8 +48,8 @@ def _apply_notches(X, notches, rate, fft=True):
     return Xp
 
 
-def apply_linenoise_notch(X, rate, fft=True):
-    """Apply notch filters at 60 Hz and its harmonics.
+def apply_linenoise_notch(X, rate, fft=True, noise_hz = 60.):
+    """Apply notch filters at 60 Hz (by default) and its harmonics.
 
     Filters +/- 1 Hz around the frequencies.
 
@@ -61,6 +61,8 @@ def apply_linenoise_notch(X, rate, fft=True):
         Number of samples per second for X.
     fft : bool
         Whether to filter in the time or frequency domain.
+    noise_hz: float
+        Frequency to notch out
 
     Returns
     -------
@@ -68,8 +70,7 @@ def apply_linenoise_notch(X, rate, fft=True):
         Notch filtered data.
     """
 
-    nyquist = rate / 2.
-    noise_hz = 60.
+    nyquist = rate / 2.    
     npad = rate
     if nyquist < noise_hz:
         return X
