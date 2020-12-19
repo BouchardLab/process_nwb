@@ -115,15 +115,16 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         cfs = log_spaced_cfs(2.6308, 1200., 54)
     else:
         raise NotImplementedError
-        
-    #Only calculate for frequencies 2.5 times than rate
-    idxs = cfs < rate/2.5
-    cfs = cfs[idxs]
 
     # Subselect high gamma bands
     if hg_only:
         idxs = np.logical_and(cfs >= 70., cfs <= 150.)
         cfs = cfs[idxs]
+
+    # Raise exception if sample rate too small
+    if max(cfs) > rate/2:
+        raise Exception('Unable to compute wavelet transform above Nyquist rate.' +
+            ' Increase your rate to at least twice your desired maximum frequency of interest.')
 
     # Calculate bandwidths
     if filters in ['rat', 'human']:
