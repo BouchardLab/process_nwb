@@ -114,6 +114,10 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         cfs = log_spaced_cfs(2.6308, 1200., 54)
     else:
         raise NotImplementedError
+        
+    #Only calculate for frequencies 2.5 times than rate
+    idxs = cfs < rate/2.5
+    cfs = cfs[idxs]
 
     # Subselect high gamma bands
     if hg_only:
