@@ -48,7 +48,7 @@ def _apply_notches(X, notches, rate, fft=True):
     return Xp
 
 
-def apply_linenoise_notch(X, rate, fft=True, noise_hz = 60.):
+def apply_linenoise_notch(X, rate, fft=True, noise_hz=60.):
     """Apply notch filters at 60 Hz (by default) and its harmonics.
 
     Filters +/- 1 Hz around the frequencies.
