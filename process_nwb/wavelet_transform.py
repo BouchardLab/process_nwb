@@ -78,7 +78,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
         'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
         'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
-        Note - center frequencies above rate/2.5 are not calculated
+        Note - calculating center frequencies above rate/2 raises a ValueError
     hg_only : bool
         If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
     X_fft_h : ndarray (n_time, n_channels)
