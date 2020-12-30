@@ -122,9 +122,10 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         cfs = cfs[idxs]
 
     # Raise exception if sample rate too small
-    if max(cfs) > rate/2:
+    if max(cfs) > rate / 2:
         raise ValueError('Unable to compute wavelet transform above Nyquist rate.' +
-            ' Increase your rate to at least twice your desired maximum frequency of interest.')
+                         ' Increase your rate to at least twice your desired maximum' +
+                         'frequency of interest.')
 
     # Calculate bandwidths
     if filters in ['rat', 'human']:
