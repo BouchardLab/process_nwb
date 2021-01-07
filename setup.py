@@ -25,4 +25,4 @@ setup(name='process_nwb',
       author='Jesse Livezey',
       author_email='jesse.livezey@gmail.com',
       packages=find_packages(),
-      scripts=['scripts/preprocess_folder.py'])
+      scripts=['scripts/preprocess_folder'])

@@ -6,6 +6,24 @@ from .utils import _npads, _smart_pad, _trim
 
 
 def _apply_notches(X, notches, rate, fft=True):
+    """Low-level code which applies notch filters.
+
+    Parameters
+    ----------
+    X : ndarray, (n_time, n_channels)
+        Input data.
+    notches : ndarray
+        Frequencies to notch filter.
+    rate : float
+        Number of samples per second for X.
+    fft : bool
+        Whether to filter in the time or frequency domain.
+
+    Returns
+    -------
+    Xp : ndarray, (n_time, n_channels)
+        Notch filtered data.
+    """
     delta = 1.
     if fft:
         fs = rfftfreq(X.shape[0], 1. / rate)
@@ -24,14 +42,16 @@ def _apply_notches(X, notches, rate, fft=True):
             freq = np.array([0, notch - delta, notch - delta / 2.,
                              notch + delta / 2., notch + delta, nyquist]) / nyquist
             filt = firwin2(n_taps, freq, gain)
-            X = filtfilt(filt, np.array([1]), X, axis=0)
+            Xp = filtfilt(filt, np.array([1]), X, axis=0)
     if fft:
-        X = irfft(fd, n=X.shape[0], axis=0)
-    return X
+        Xp = irfft(fd, n=X.shape[0], axis=0)
+    return Xp
 
 
 def apply_linenoise_notch(X, rate, fft=True):
-    """Apply Notch filter at 60 Hz and its harmonics.
+    """Apply notch filters at 60 Hz and its harmonics.
+
+    Filters +/- 1 Hz around the frequencies.
 
     Parameters
     ----------
@@ -39,11 +59,13 @@ def apply_linenoise_notch(X, rate, fft=True):
         Input data.
     rate : float
         Number of samples per second for X.
+    fft : bool
+        Whether to filter in the time or frequency domain.
 
     Returns
     -------
-    X : ndarray, (n_time, n_channels)
-        Notch filtered data data, dimensions
+    Xp : ndarray, (n_time, n_channels)
+        Notch filtered data.
     """
 
     nyquist = rate / 2.

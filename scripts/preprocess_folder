@@ -1,4 +1,4 @@
-#! /user/bin/env python
+#! /usr/bin/env python
 import argparse, glob, os
 
 from pynwb import NWBHDF5IO
@@ -15,8 +15,10 @@ parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\n3) Perform and store a wavelet decomposition.')
 parser.add_argument('folder', type=str, help='Folder')
 parser.add_argument('--frequency', type=float, default=400., help='Frequency to resample to.')
-parser.add_argument('--filters', type=str, default='default',
+parser.add_argument('--filters', type=str, default='rat',
+                    choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
+parser.add_argument('--all_filters', '--all-filters', action='store_true')
 parser.add_argument('--acq-name', type=str, default='ElectricalSeries',
                     help='Name of acquisition in NWB file')
 parser.add_argument('--chunked', '--chunk', action='store_true',
@@ -30,6 +32,7 @@ frequency = args.frequency
 filters = args.filters
 acq_name = args.acq_name
 chunked = args.chunked
+hg_only = not args.all_filters
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
 for fname in files:
@@ -51,7 +54,9 @@ for fname in files:
 
         _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
                                                             nwbfile.processing['preprocessing'],
-                                                            filters=filters, chunked=chunked)
+                                                            filters=filters,
+                                                            chunked=chunked,
+                                                            hg_only=hg_only)
         del _
 
         io.write(nwbfile)

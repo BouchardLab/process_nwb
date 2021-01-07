@@ -10,6 +10,19 @@ from hdmf.data_utils import AbstractDataChunkIterator, DataChunk
 
 
 def gaussian(n_time, rate, center, sd):
+    """Generates a normalized gaussian kernel.
+
+    Parameters
+    ----------
+    n_time : int
+        Number of samples
+    rate : float
+        Sampling rate of kernel (Hz).
+    center : float
+        Center frequency (Hz).
+    sd : float
+        Bandwidth (Hz).
+    """
     freq = fftfreq(n_time, 1. / rate)
 
     k = np.exp((-(np.abs(freq) - center) ** 2) / (2 * (sd ** 2)))
@@ -19,6 +32,19 @@ def gaussian(n_time, rate, center, sd):
 
 
 def hamming(n_time, rate, min_freq, max_freq):
+    """Generates a normalized Hamming kernel.
+
+    Parameters
+    ----------
+    n_time : int
+        Number of samples
+    rate : float
+        Sampling rate of kernel (Hz).
+    min_freq : float
+        Band minimum frequency (Hz).
+    max_freq : float
+        Band maximum frequency (Hz).
+    """
     freq = fftfreq(n_time, 1. / rate)
 
     pos_in_window = np.logical_and(freq >= min_freq, freq <= max_freq)
@@ -35,37 +61,45 @@ def hamming(n_time, rate, min_freq, max_freq):
 
     return k
 
-def get_filterbank(filters, constant_Q, n_time, rate):
-    if filters == 'default':
-        filters = []
+def get_filterbank(filters, n_time, rate, hg_only):
+    # If `filters` is already a filter bank, don't do anything
+    # (used when processing bands individually)
+    # Also we won't need the cfs and sds if we've already made the filters
+    if isinstance(filters, list):
+        return filters, None, None
+    
+    # Calculate center frequencies
+    if filters in ['human', 'changlab']:
         cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-        if constant_Q:
-            sds = const_Q_sds(cfs)
-        else:
-            raise NotImplementedError
-        for cf, sd in zip(cfs, sds):
-            filters.append(gaussian(n_time, rate, cf, sd))
-    elif filters == 'chang':
-        filters = []
-        cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-        sds = chang_sds(cfs)
-        for cf, sd in zip(cfs, sds):
-            filters.append(gaussian(n_time, rate, cf, sd))
-    elif isinstance(filters, list):
-        pass # `filters` is already a filter bank
+    elif filters == 'rat':
+        cfs = log_spaced_cfs(2.6308, 1200., 54)
     else:
         raise NotImplementedError
 
-    if not isinstance(filters, list):
-        filters = [filters]
+    # Subselect high gamma bands
+    if hg_only:
+        idxs = np.logical_and(cfs >= 70., cfs <= 150.)
+        cfs = cfs[idxs]
 
-    return filters
+    # Calculate bandwidths
+    if filters in ['rat', 'human']:
+        sds = const_Q_sds(cfs)
+    elif filters == 'changlab':
+        sds = chang_sds(cfs)
+    else:
+        raise NotImplementedError
 
-def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
-                      constant_Q=True):
-    """
-    Apply bandpass filtering with wavelet transform using
-    a prespecified set of filters.
+    filters = []
+    for cf, sd in zip(cfs, sds):
+        filters.append(gaussian(n_time, rate, cf, sd))
+
+    return filters, cfs, sds
+
+def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=None):
+    """Apply a wavelet transform using a prespecified set of filters.
+
+    Calculates the center frequencies and bandwidths for the wavelets and applies them along with
+    a heavyside function to the fft of the signal before performing an inverse fft.
 
     Parameters
     ----------
@@ -73,8 +107,18 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
         Input data, dimensions
     rate : float
         Number of samples per second.
-    filters : filter or list of filters (optional)
-        One or more bandpass filters
+    filters : str (optional)
+        Which type of filters to use. Options are
+        'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
+        'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
+        'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
+    hg_only : bool
+        If True, only the amplitudes in the high gamma range [70-150 Hz] are computed.
+    X_fft_h : ndarray (n_time, n_channels)
+        Precomputed product of X_fft and heavyside. Useful for when bands are computed
+        independently.
+    npad : int
+        Length of padding in samples.
 
     Returns
     -------
@@ -82,6 +126,10 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
         Bandpassed analytic signal
     X_fft_h : ndarray, complex
         Product of X_fft and heavyside.
+    cfs : ndarray
+        Center frequencies used.
+    sds : ndarray
+        Bandwidths used.
     """
     if npad is None:
         npad = int(rate)
@@ -94,7 +142,8 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
         n_time = X_fft_h.shape[0]
     freq = fftfreq(n_time, 1. / rate)
 
-    filters = get_filterbank(filters, constant_Q, n_time, rate)
+    filters, cfs, sds = get_filterbank(filters, n_time, rate, hg_only)
+
     Xh = np.zeros(X.shape + (len(filters),), dtype=np.complex)
     if X_fft_h is None:
         # Heavyside filter with 0 DC
@@ -112,23 +161,23 @@ def wavelet_transform(X, rate, filters='default', X_fft_h=None, npad=None,
 
     Xh = _trim(Xh, to_removes)
 
-    return Xh, X_fft_h
+    return Xh, X_fft_h, cfs, sds
 
 
 class ChBandIterator(AbstractDataChunkIterator):
-    def __init__(self, X, rate, filters='default', npad=None, constant_Q=True):
+    def __init__(self, X, rate, filters='rat', npad=None, hg_only=True):
         self.X = X
         self.rate = rate
-        self.filters = filters
         self.npad = npad
-        self.constant_Q = constant_Q
 
         # Need to pad X before predicting chunk and filter shape:
         X = self.X[:, 0]
         npads, to_removes, _ = _npads(X, self.npad)
         X = _smart_pad(X, npads)
         self.ntimepts = X.shape[0]
-        self.filterbank = get_filterbank(self.filters, self.constant_Q, self.ntimepts, self.rate)
+        self.filterbank, self.cfs, self.sds = get_filterbank(
+            filters, self.ntimepts, self.rate, hg_only
+        )
 
         self.nch = self.X.shape[1]
         self.nbands = len(self.filterbank)
@@ -151,13 +200,12 @@ class ChBandIterator(AbstractDataChunkIterator):
             self.X_fft_h = None
 
         X_ch = self.X[:, [ch]]
-        data, self.X_fft_h = wavelet_transform(
+        data, self.X_fft_h, cfs, sds = wavelet_transform(
             X_ch,
             self.rate,
             filters=[self.filterbank[band]],
-            # X_fft_h=self.X_fft_h, # Reusing X_fft_h doesn't work here because wavelet_transform() decides whether to pad x based on whether X_fft_h is passed in. Could be optimized, but this is a small price to pay for the memory gains
+            # X_fft_h=self.X_fft_h, # Reusing X_fft_h doesn't work here because wavelet_transform() decides whether to pad X based on whether X_fft_h is passed in. Could be optimized, but this is a small price to pay for the memory gains
             npad=self.npad,
-            constant_Q=self.constant_Q
         )
         data = np.squeeze(data)
         return DataChunk(data=np.abs(data), selection=np.s_[:data.shape[0], ch, band])
@@ -179,27 +227,41 @@ class ChBandIterator(AbstractDataChunkIterator):
         return (self.ntimepts, self.nch, self.nbands)
 
 
-def store_wavelet_transform(elec_series, processing, npad=None, filters='default',
-                            X_fft_h=None, abs_only=True, constant_Q=True, chunked=True):
-    """
-    Apply bandpass filtering with wavelet transform using
-    a prespecified set of filters.
+def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
+                            abs_only=True, npad=None, chunked=True):
+    """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
+    NWB file as a `DecompositionSeries`.
+
+    Calculates the center frequencies and bandwidths for the wavelets and applies them along with
+    a heavyside function to the fft of the signal before performing an inverse fft. The center
+    frequencies and bandwidths are also stored in the NWB file.
 
     Parameters
     ----------
-    X : ndarray (n_time, n_channels)
-        Input data, dimensions
-    rate : float
-        Number of samples per second.
-    filters : filter or list of filters (optional)
-        One or more bandpass filters
+    elec_series : ElectricalSeries
+        ElectricalSeries to process.
+    processing : Processing module
+        NWB Processing module to save processed data.
+    filters : str (optional)
+        Which type of filters to use. Options are
+        'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
+        'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
+        'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
+    hg_only : bool
+        If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
+    X_fft_h : ndarray (n_time, n_channels)
+        Precomputed product of X_fft and heavyside.
+    abs_only : bool
+        If True, only the amplitude is stored.
+    npad : int
+        Length of padding in samples.
 
     Returns
     -------
-    Xh : ndarray, complex
-        Bandpassed analytic signal
-    X_fft_h : ndarray, complex
-        Product of X_ff and heavyside.
+    X_wvlt : ndarray, complex
+        Complex wavelet coefficients.
+    series : list of DecompositionSeries
+        List of NWB objects.
     """
     X = elec_series.data
     rate = elec_series.rate
@@ -208,7 +270,10 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='default
     if chunked:
         if not abs_only:
             raise NotImplementError("Can't get phase from chunked wavelet transform")
-        X_wvlt_abs = ChBandIterator(X, rate, filters=filters, npad=npad, constant_Q=constant_Q)
+
+        X_wvlt_abs = ChBandIterator(X, rate, filters=filters, npad=npad, hg_only=hg_only)
+        cfs = X_wvlt_abs.cfs
+        sds = X_wvlt_abs.sds
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
                                                    X_wvlt_abs,
                                                    metric='amplitude',
@@ -219,8 +284,8 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='default
                                                                 elec_series.description))
         X_wvlt = None # this function still needs to return something
     else:
-        X_wvlt, _ = wavelet_transform(X[:], rate, filters=filters, X_fft_h=X_fft_h,
-                                      npad=npad, constant_Q=constant_Q)
+        X_wvlt, _, cfs, sds = wavelet_transform(X[:], rate, filters=filters, X_fft_h=X_fft_h,
+                                                hg_only=hg_only, npad=npad)
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
                                                    abs(X_wvlt),
                                                    metric='amplitude',
@@ -242,16 +307,9 @@ def store_wavelet_transform(elec_series, processing, npad=None, filters='default
         series.append(elec_series_wvlt_phase)
 
     for es in series:
-        if filters == 'default':
-            cfs = log_spaced_cfs(4.0749286538265, 200, 40)
-            if constant_Q:
-                sds = const_Q_sds(cfs)
-            else:
-                raise NotImplementedError
-            for ii, (cf, sd) in enumerate(zip(cfs, sds)):
-                iii = '{:02}'.format(ii)
-                es.add_band(band_name=iii, band_mean=cf,
-                            band_stdev=sd, band_limits=(-1, -1))
+        for ii, (cf, sd) in enumerate(zip(cfs, sds)):
+            es.add_band(band_name=str(ii), band_mean=cf,
+                        band_stdev=sd, band_limits=(-1, -1))
 
         processing.add(es)
 

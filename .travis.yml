@@ -1,7 +1,6 @@
 language: python
 os: linux
 python:
-  - 3.5
   - 3.6
   - 3.7
 install:
@@ -14,12 +13,14 @@ install:
     - conda info -a
     - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment.yml
     - conda activate test
+    - conda list
     - conda install flake8 codecov pytest-cov
     - pip install sphinx_rtd_theme
     - python setup.py build
     - python setup.py develop
 script:
     - flake8 process_nwb tests
+    - preprocess_folder -h
     - pytest -sv --cov=./ tests
     - sphinx-build -W -b html docs/source docs/build
 after_success:

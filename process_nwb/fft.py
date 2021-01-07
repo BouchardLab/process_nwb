@@ -8,5 +8,4 @@ except ImportError:
         from numpy.fft import rfft, irfft, fft, ifft
 
 
-__all__ = ['rfftfreq', 'fftfreq', 'ifftshift',
-           'fft', 'ifft', 'rfft', 'irfft']
+__all__ = ['rfftfreq', 'fftfreq', 'ifftshift', 'fft', 'ifft', 'rfft', 'irfft']
