@@ -12,6 +12,7 @@ Welcome to process_nwb's documentation!
 
    introduction
    installation
+   tutorial
    api
 
 
