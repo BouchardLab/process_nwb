@@ -15,7 +15,7 @@ install:
     - conda activate test
     - conda list
     - conda install flake8 codecov pytest-cov
-    - pip install sphinx_rtd_theme sphinx_gallery
+    - pip install sphinx_rtd_theme sphinx-gallery
     - python setup.py build
     - python setup.py develop
 script:
