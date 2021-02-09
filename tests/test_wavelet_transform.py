@@ -7,20 +7,33 @@ from process_nwb.wavelet_transform import (wavelet_transform,
                                            hamming)
 
 
-@pytest.mark.parametrize("filters,hg_only,dim", [('human', False, 40),
-                                                 ('human', True, 8),
-                                                 ('changlab', False, 40),
-                                                 ('changlab', True, 8),
-                                                 ('rat', False, 54),
-                                                 ('rat', True, 6)])
-def test_wavelet_return(filters, hg_only, dim):
+@pytest.mark.parametrize("filters,hg_only,dim,rate", [('human', False, 40, 400.),
+                                                      ('human', True, 8, 400.),
+                                                      ('changlab', False, 40, 400.),
+                                                      ('changlab', True, 8, 400.),
+                                                      ('rat', False, 54, 2400.),
+                                                      ('rat', True, 6, 2400.)])
+def test_wavelet_return(filters, hg_only, dim, rate):
     """Test the return shape and dtype.
     """
     X = np.random.randn(1000, 32)
-    rate = 200
     Xh, _, cfs, sds = wavelet_transform(X, rate, filters=filters, hg_only=hg_only)
     assert Xh.shape == (X.shape[0], X.shape[1], dim)
     assert Xh.dtype == np.complex
+
+
+@pytest.mark.parametrize("filters,hg_only,dim,rate", [('human', False, 40, 399.),
+                                                      ('human', True, 8, 200.),
+                                                      ('changlab', False, 40, 399.),
+                                                      ('changlab', True, 8, 200.),
+                                                      ('rat', False, 54, 2399.),
+                                                      ('rat', True, 6, 200.)])
+def test_wavelet_nyquist(filters, hg_only, dim, rate):
+    """Test the return shape and dtype.
+    """
+    X = np.random.randn(1000, 32)
+    with pytest.raises(ValueError):
+        wavelet_transform(X, rate, filters=filters, hg_only=hg_only)
 
 
 def test_gaussian_kernel():

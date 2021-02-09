@@ -70,7 +70,7 @@ def apply_linenoise_notch(X, rate, fft=True, noise_hz=60.):
         Notch filtered data.
     """
 
-    nyquist = rate / 2.    
+    nyquist = rate / 2.
     npad = rate
     if nyquist < noise_hz:
         return X
