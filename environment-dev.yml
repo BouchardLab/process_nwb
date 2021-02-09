@@ -1,0 +1,12 @@
+dependencies:
+  - numpy
+  - scipy
+  - mkl_fft
+  - flake8
+  - pytest
+  - sphinx
+  - pip
+  - pip:
+    - pynwb
+    - sphinx_rtd_theme
+    - sphinx-gallery
