@@ -14,4 +14,4 @@ python:
       path: .
       extra_requirements:
         - sphinx_rtd_theme
-        - sphinx_gallery
+        - sphinx-gallery
