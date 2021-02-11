@@ -1,6 +1,7 @@
 dependencies:
   - numpy
   - scipy
+  - matplotlib
   - mkl_fft
   - flake8
   - pytest
