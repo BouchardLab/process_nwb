@@ -1,8 +1,8 @@
 """
-.. _ECoG_preprocessing:
+.. _ECoG_preprocessing_NWB:
 
-ECoG Preprocessing Tutorial
-===========================
+ECoG Preprocessing Tutorial with NWB
+====================================
 
 This tutorial will go through the common signal processing steps used to
 preprocess ECoG data from raw voltages to zscored high gamma amplitudes. It will
