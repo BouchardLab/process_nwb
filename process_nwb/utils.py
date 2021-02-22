@@ -130,3 +130,55 @@ def _smart_pad(X, npads, pad='reflect_limited'):
                                2 * X[[-1]] - X[-2:-npads[1] - 2:-1], r_z_pad], axis=0)
     else:
         return np.pad(X, (tuple(npads), 0), pad)
+
+
+def generate_synthetic_data(duration, nchannels, rate, high_gamma=True,
+                            linenoise=True, seed=0):
+    """Generate synthetic data by smoothing white noise with a boxcar for
+    testing or tutorials. Optional high gamma and 60 Hz linenoise can be added.
+
+    Parameters
+    ----------
+    duration : float
+        Data duration in seconds.
+    nchannels : int
+        Number of channels
+    rate : float
+        Sampling rate in Hz
+    high_gamma : bool
+        If True, include extra modulating power in the high gamma range.
+    linenoise : bool
+        If True, include 60 Hz linenoise.
+
+    Returns
+    -------
+    neural_data : ndarray (time, channels)
+        Synthetic neural data
+    """
+    kernel_length = 50
+    rng = np.random.default_rng(seed=seed)
+    neural_data = rng.standard_normal((int(duration * rate), nchannels)) / 100.
+    kernel = np.ones(kernel_length) / kernel_length
+    for ch in range(nchannels):
+        neural_data[:, ch] = np.convolve(neural_data[:, ch], kernel, mode='same')
+    neural_data /= neural_data.std() * 2.
+
+    if high_gamma or linenoise:
+        t = np.linspace(0, duration, neural_data.shape[0])[:, np.newaxis]
+    if high_gamma:
+        # Add a high gamma signal at 100 Hz that modulates at 2 Hz
+        phase = 2 * np.pi * rng.random(nchannels)[np.newaxis]
+        high_gamma = np.sin(2 * np.pi * t * 100. + phase)
+        phase = 2 * np.pi * rng.random(nchannels)[np.newaxis]
+        high_gamma *= np.sin(2 * np.pi * t * 1. + phase)**2 + 0.2
+        neural_data += high_gamma
+
+    if linenoise:
+        # Add common noise but with different weights to each channel
+        weights = rng.standard_normal((1, nchannels))
+        if rate > 120.:
+            for ii, hz in enumerate(np.arange(60., rate, 60.)):
+                line_noise = np.sin(2 * np.pi * t * hz) / 2. ** (ii + 1)
+                neural_data += line_noise * weights
+
+    return neural_data

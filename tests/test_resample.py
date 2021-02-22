@@ -26,7 +26,7 @@ def test_resample_ones():
 
 
 def test_resample_low_freqs():
-    """Resampling should now impact low frequencies.
+    """Resampling should not impact low frequencies.
     """
     dt = 40.  # seconds
     rate = 400.  # Hz

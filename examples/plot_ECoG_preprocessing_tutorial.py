@@ -1,132 +1,90 @@
 """
 .. _ECoG_preprocessing:
 
-ECoG Preprocessing tutorial
-==========================================================
+ECoG Preprocessing Tutorial
+===========================
 
-Overview of steps
-------------------------
+This tutorial will go through the common signal processing steps used to
+preprocess ECoG data from raw voltages to zscored high gamma amplitudes. It will
+operate on a Numpy array of data rather than use data in an NWB file. All of
+the steps in this tutorial are typically independent of the experimental
+task structure.
+
+Overview of preprocessing steps
+-------------------------------
 - Resampling
-- Re-referencing
 - Notch filtering
+- Re-referencing
 - Time-frequency power calculation
 - Normalizing power for each frequency
-
 """
 
 # %%
 # Imports
-# ------------------------
+# -------
 
-import process_nwb
 import numpy as np
 import matplotlib.pyplot as plt
 
+import process_nwb
+from process_nwb.utils import generate_synthetic_data
+
 # %%
 # Create synthetic neural data
-# ----------------------------------------
-# - Synthetic neural data is created by by convolving white noise with a boxcar
-# - Common line noise (60Hz) is added but with different weights to each channel
+# ----------------------------
+# We will create synthetic neural data by convolving white noise with a boxcar,
+# adding power in the high gamma range with modulating amplitude, and adding
+# common line noise (60Hz) with different weights to each channel.
 
-num_channels = 4
-duration = 10  # seconds
-sample_rate = 10000  # hz
-kernel_length = 50
-snr = 2.
-np.random.seed(0)
-line_noise_freq = 60.  # hz
+num_channels = 64
+duration = 10.  # seconds
+sample_rate = 10000.  # Hz
+new_sample_rate = 500.  # hz
+neural_data = generate_synthetic_data(duration, num_channels, sample_rate) * 1e6
+t = np.linspace(0, duration, neural_data.shape[0])[:, np.newaxis]
 
-# Create synthetic neural data by convolving white noise with a boxcar
-
-signal_data = np.random.randn(duration * sample_rate, num_channels)
-kernel = np.ones(kernel_length) / kernel_length
-for ch in range(num_channels):
-    signal_data[:, ch] = np.convolve(signal_data[:, ch], kernel, mode='same')
-
-# Add common noise but with different weights to each channel
-
-t = np.linspace(0, duration, duration * sample_rate)
-line_noise = np.sin(2 * np.pi * t * line_noise_freq).reshape(-1, 1)
-line_noise = np.repeat(line_noise, 4, axis=1)
-neural_data = snr * signal_data + line_noise @ np.diag(np.random.randn(4))
-
-# Here is one channel of the pure neural data (signal only)
-
-plt.plot(signal_data[:1000, 0])
-plt.xlabel('Samples (0.1 sec of data)')
+# Here is one chanel of synthetic neural data
+plt.plot(t[:10000, 0], neural_data[:10000, 0])
+plt.xlabel('Time (s)')
 plt.ylabel('Amplitude (au)')
-_ = plt.title('One channel of neural data without line noise')
-
-# %%
-#
-
-# Here's signal + noise
-plt.plot(neural_data[:1000, 0])
-plt.xlabel('Samples (0.1 sec of data)')
-plt.ylabel('Amplitude (au)')
-_ = plt.title('One channel of neural data with line noise')
+_ = plt.title('One channel of neural data')
 
 
 # %%
-# Resampling in the frequency domain
-# ----------------------------------------
-# - Resample the data down to make computations much faster downstream
-# - The resampling algorithm is done in the frequency domain
+# Resampling the data
+# -------------------
+# Often times, the raw data (voltages) are recorded at a much higher sampling
+# rate than is needed for a particular analysis. Here, the raw data is sampled
+# at 10,000 Hz but the high gamma range only goes up to 150 Hz. Resampling the
+# will make many downstream computations much faster.
 
 from process_nwb import resample
 
 # %%
 #
 
-new_sample_rate = 1000  # hz
-rs_data = resample.resample(neural_data, new_sample_rate, sample_rate, real=True, axis=0)
+rs_data = resample.resample(neural_data, new_sample_rate, sample_rate)
+t = np.linspace(0, duration, rs_data.shape[0])
 
-plt.plot(rs_data[:100, 0])
-plt.xlabel('Samples (0.1 sec of data)')
+plt.plot(t[:500], rs_data[:500, 0])
+plt.xlabel('Time (s)')
 plt.ylabel('Amplitude (au)')
 _ = plt.title('One channel of neural data after resampling')
 
-# %%
-# Re-referencing with common average referencing
-# --------------------------------------------------------
-# - Often times there is common noise from neural recording such as movement artifact or line noise
-# - To remove, a robust estimate of the average across all signals (for each timepoint) is
-#   calculated than subtracted all channels
-
-car_data = process_nwb.common_referencing.subtract_CAR(rs_data)
-
-plt.plot(car_data[:100, 0])
-plt.xlabel('Samples (0.1 sec of data)')
-plt.ylabel('Amplitude (au)')
-_ = plt.title('One channel of neural data after re-referencing from resample')
 
 # %%
 #  Notch filtering
-# ------------------------
-# - Since line noise is not of equal strength across channels, CAR fails at getting rid of all
-#   line noise.
-# - Therefore, notch filtering is used to remove line noise on all channels
+# ----------------
+# Notch filtering is used to remove the 60 Hz line noise and harmonics on all
+# channels.
 
-nth_data = process_nwb.linenoise_notch.apply_linenoise_notch(car_data, new_sample_rate)
-
-plt.plot(nth_data[:100, 0])
-plt.xlabel('Samples (0.1 sec of data)')
-plt.ylabel('Amplitude (au)')
-_ = plt.title('One channel of neural data')
-
-# %%
-#
 
 from scipy.signal import welch
-from scipy.signal.windows import kaiser
 
-# %%
-#
+nth_data = process_nwb.linenoise_notch.apply_linenoise_notch(rs_data, new_sample_rate)
 
-
-window = kaiser(1024, 2)
-freq, car_pwr = welch(car_data[:, 0], fs=new_sample_rate, window=window)
-_, nth_pwr = welch(nth_data[:, 0], fs=new_sample_rate, window=window)
+freq, car_pwr = welch(rs_data[:, 0], fs=new_sample_rate, nperseg=1024)
+_, nth_pwr = welch(nth_data[:, 0], fs=new_sample_rate, nperseg=1024)
 
 fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, sharex=True)
 axs[0].semilogy(freq, car_pwr)
@@ -143,87 +101,89 @@ _ = fig.tight_layout()
 
 
 # %%
+# Re-referencing with common average referencing
+# ----------------------------------------------
+# There is often common noise from neural recording such as movement artifacts
+# or 60 Hz line noise. Additionally, it is often desirable for ECoG channels to
+# be referenced to a common ground. Here, we use a robust estimate of the mean
+# across all channels (for each timepoint). This quantity is then subtracted all
+# channels. By default, this CAR function takes the mean over the center 95% of
+# the electrodes.
+
+car_data = process_nwb.common_referencing.subtract_CAR(nth_data)
+
+plt.plot(t[:500], car_data[:500, 0])
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude (au)')
+_ = plt.title('One channel of neural data after re-referencing from resample')
+
+
+# %%
 #  Time-frequency decomposition with wavelets
-# --------------------------------------------------------
-# - Here we decompose the neural time series into 6 different frequency bands using a
-#   wavelet transform
-# - The wavelet transform outputs the analytical amplitude, which is complex valued.
-# - I'm plotting the magnitude of analytical amplitude which is a proxy of band power
+# -------------------------------------------
+# Here we decompose the neural time series into 6 different frequency subbands
+# in the high gamma range using a wavelet transform. The wavelet transform
+# amplitude is complex valued and here we take the absolute value.
+#
+# Note how the bands with center frequency nearest 100 Hz have larger amplitude.
 
 from process_nwb import wavelet_transform
 
-# %%
-#
-
-
-tf_data, _, ctr_freq, bw = wavelet_transform.wavelet_transform(nth_data, new_sample_rate,
+tf_data, _, ctr_freq, bw = wavelet_transform.wavelet_transform(car_data, new_sample_rate,
                                                                filters='rat', hg_only=True)
 # Z scoring the amplitude instead of the complex waveform
 tf_data = abs(tf_data)
 
-# %%
-#
-
 num_tf_signals = len(ctr_freq)
 fig, axs = plt.subplots(num_tf_signals, 1, sharex=True, sharey=True, figsize=(15, 10))
 fig.subplots_adjust(hspace=0.4)
 fig.tight_layout()
 
-time = np.linspace(0, duration, tf_data.shape[0])
+
 for idx in range(num_tf_signals):
     sig = tf_data[:, 0, idx]
-    axs[idx].plot(time, sig)
+    axs[idx].plot(t, sig)
     axs[idx].set_title('Frequency = {0:.0f} ; Bandwidth = {1:0.0f}'.format(ctr_freq[idx], bw[idx]))
     axs[idx].set_ylabel('Amp. (au)')
 
 # %%
-# Normalizing power by z-scoring
-# -------------------------------------------
-# - For neural data, power falls off with frequency so it can be difficult to compare amplitude
-#   changes across different frequency bands.
-# - To address this issue we normalize each frequency band by zscoring.
-# - In this case, the mean and standard deviation are calculated over the entire signal, but if
-#   there's a baseline period(s) then it would make more sense to calculate mean and standard
-#   deviation over those period(s)
+# Normalizing power by zscoring
+# ------------------------------
+# For neural data, power falls off with frequency so it can be difficult to
+# compare amplitude changes across different frequency bands. Furthermore,
+# different electrodes may have different contact with the neural surface, which
+# can lead to meaningless differences in signal amplitude across channels. To
+# address this issue, we normalize each frequency band and electrode by zscoring.
+# In this case, the mean and standard deviation are calculated over the first
+# 0.25 seconds of the signal, our synthetic baseline time. Different experimental
+# recordings and tasks may use different baseline periods.
+#
+# Then, we will average over the zscored high gamma subbands to form the final
+# high gamma signal the plot the zscored ampliced for all channels.
 
 
-def zscore_signal(signal, mean=None, std=None):
-    if mean is None:
-        mean = np.mean(signal)
-    if std is None:
-        std = np.std(signal)
-    return (signal - mean) / std
+mean = tf_data[:125].mean(axis=0, keepdims=True)
+std = tf_data[:125].std(axis=0, keepdims=True)
+tf_norm_data = (tf_data - mean) / std
+high_gamma = tf_norm_data.mean(axis=-1)
 
 
 # %%
 #
 
 
-tf_norm_data = np.empty(tf_data.shape)
-
-
-for idx in range(num_tf_signals):
-    for ch in range(num_channels):
-        tf_norm_data[:, ch, idx] = zscore_signal(tf_data[:, ch, idx])
-
-
-# %%
-#
-
-
-num_tf_signals = len(ctr_freq)
-fig, axs = plt.subplots(num_tf_signals, 1, sharex=True, sharey=True, figsize=(15, 10))
+fig, axs = plt.subplots(4, 1, sharex=True, sharey=True, figsize=(10, 10))
 fig.subplots_adjust(hspace=0.4)
 fig.tight_layout()
 
-time = np.linspace(0, duration, tf_data.shape[0])
-for idx in range(num_tf_signals):
-    sig = tf_norm_data[:, 0, idx]
-    axs[idx].plot(time, sig)
-    axs[idx].set_title('Frequency = {0:.0f} ; Bandwidth = {1:0.0f}'.format(ctr_freq[idx], bw[idx]))
+for idx in range(4):
+    sig = high_gamma[:, idx]
+    axs[idx].plot(t, sig)
+    axs[idx].set_title('Channel {0:.0f}'.format(idx))
     axs[idx].set_ylabel('σ')
+    axs[idx].set_ylim(-4, 4)
 
 
 # %%
 # Congrats you now know how to preprocess ECoG signals!
-# -----------------------------------------------------------
+# -----------------------------------------------------
