@@ -11,11 +11,10 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment.yml
+    - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment-dev.yml
     - conda activate test
     - conda list
-    - conda install flake8 codecov pytest-cov matplotlib
-    - pip install sphinx_rtd_theme sphinx-gallery
+    - conda install codecov pytest-cov
     - python setup.py build
     - python setup.py develop
 script:
