@@ -22,7 +22,5 @@ script:
     - preprocess_folder -h
     - pytest -sv --cov=./ tests
     - sphinx-build -W -b html docs/source docs/build
-    - conda uninstall mkl_fft
-    - pytest -sv --cov=./ tests/test_resample::test_resample_shape
 after_success:
     - codecov

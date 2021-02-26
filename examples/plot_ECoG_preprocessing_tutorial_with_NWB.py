@@ -24,10 +24,10 @@ import matplotlib.pyplot as plt
 
 from pynwb.ecephys import ElectricalSeries
 
-from process_nwb.resample import store_resample
-from process_nwb.wavelet_transform import store_wavelet_transform
-from process_nwb import store_linenoise_notch_CAR
 from process_nwb.utils import generate_synthetic_data, generate_nwbfile
+from process_nwb.resample import store_resample
+from process_nwb import store_linenoise_notch_CAR
+from process_nwb.wavelet_transform import store_wavelet_transform
 
 
 # %%

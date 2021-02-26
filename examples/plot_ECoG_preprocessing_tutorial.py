@@ -25,9 +25,13 @@ Overview of preprocessing steps
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import welch
 
-import process_nwb
 from process_nwb.utils import generate_synthetic_data
+from process_nwb.resample import resample
+from process_nwb.linenoise_notch import apply_linenoise_notch
+from process_nwb.common_referencing import subtract_CAR
+from process_nwb.wavelet_transform import wavelet_transform
 
 # %%
 # Create synthetic neural data
@@ -58,12 +62,10 @@ _ = plt.title('One channel of neural data')
 # at 10,000 Hz but the high gamma range only goes up to 150 Hz. Resampling the
 # will make many downstream computations much faster.
 
-from process_nwb import resample
-
 # %%
 #
 
-rs_data = resample.resample(neural_data, new_sample_rate, sample_rate)
+rs_data = resample(neural_data, new_sample_rate, sample_rate)
 t = np.linspace(0, duration, rs_data.shape[0])
 
 plt.plot(t[:500], rs_data[:500, 0])
@@ -79,9 +81,7 @@ _ = plt.title('One channel of neural data after resampling')
 # channels.
 
 
-from scipy.signal import welch
-
-nth_data = process_nwb.linenoise_notch.apply_linenoise_notch(rs_data, new_sample_rate)
+nth_data = apply_linenoise_notch(rs_data, new_sample_rate)
 
 freq, car_pwr = welch(rs_data[:, 0], fs=new_sample_rate, nperseg=1024)
 _, nth_pwr = welch(nth_data[:, 0], fs=new_sample_rate, nperseg=1024)
@@ -110,7 +110,7 @@ _ = fig.tight_layout()
 # channels. By default, this CAR function takes the mean over the center 95% of
 # the electrodes.
 
-car_data = process_nwb.common_referencing.subtract_CAR(nth_data)
+car_data = subtract_CAR(nth_data)
 
 plt.plot(t[:500], car_data[:500, 0])
 plt.xlabel('Time (s)')
@@ -127,10 +127,9 @@ _ = plt.title('One channel of neural data after re-referencing from resample')
 #
 # Note how the bands with center frequency nearest 100 Hz have larger amplitude.
 
-from process_nwb import wavelet_transform
 
-tf_data, _, ctr_freq, bw = wavelet_transform.wavelet_transform(car_data, new_sample_rate,
-                                                               filters='rat', hg_only=True)
+tf_data, _, ctr_freq, bw = wavelet_transform(car_data, new_sample_rate,
+                                             filters='rat', hg_only=True)
 # Z scoring the amplitude instead of the complex waveform
 tf_data = abs(tf_data)
 
