@@ -1,4 +1,8 @@
 import numpy as np
+from datetime import datetime
+from dateutil.tz import tzlocal
+
+from pynwb import NWBFile
 
 
 def log_spaced_cfs(fmin, fmax, ncfs):
@@ -182,3 +186,37 @@ def generate_synthetic_data(duration, nchannels, rate, high_gamma=True,
                 neural_data += line_noise * weights
 
     return neural_data
+
+
+def generate_nwbfile(nchannels=4):
+    """Generate an `NWBFile` object that an `ElectricalSeries` can be added to.
+
+    Returns
+    -------
+    nwbfile : NWBFile
+        NWBFile object
+    Device : Device
+        Device for the ElectricalSeries
+    electrode_group : ElectrodeGroup
+        ElectrodeGroup for the ElectricalSeries
+    electrodes : Electrodes
+        Electrodes for the ElectricalSeries
+    """
+    start_time = datetime(2020, 12, 31, 11, 28, tzinfo=tzlocal())
+    nwbfile = NWBFile(session_description='Demonstrate `process_nwb` on an NWBFile',
+                      identifier='NWB123',
+                      session_start_time=start_time)
+    device = nwbfile.create_device(name='ECoG_grid')
+    electrode_group = nwbfile.create_electrode_group('Grid',
+                                                     description='Grid',
+                                                     location='cortex',
+                                                     device=device)
+    for idx in range(nchannels):
+        nwbfile.add_electrode(id=idx,
+                              x=1.0, y=2.0, z=3.0,
+                              imp=float(-idx),
+                              location='cortex', filtering='none',
+                              group=electrode_group)
+    electrodes = nwbfile.create_electrode_table_region(list(range(nchannels)), 'Electrodes')
+
+    return nwbfile, device, electrode_group, electrodes

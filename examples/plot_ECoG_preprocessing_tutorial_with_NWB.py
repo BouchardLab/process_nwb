@@ -21,16 +21,13 @@ Overview of preprocessing steps
 
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime
-from dateutil.tz import tzlocal
 
-from pynwb import NWBFile
 from pynwb.ecephys import ElectricalSeries
 
+from process_nwb.utils import generate_synthetic_data, generate_nwbfile
 from process_nwb.resample import store_resample
-from process_nwb.wavelet_transform import store_wavelet_transform
 from process_nwb import store_linenoise_notch_CAR
-from process_nwb.utils import generate_synthetic_data
+from process_nwb.wavelet_transform import store_wavelet_transform
 
 
 # %%
@@ -47,23 +44,7 @@ duration = 10.  # seconds
 sample_rate = 10000.  # Hz
 new_sample_rate = 500.  # hz
 
-
-start_time = datetime(2020, 12, 31, 11, 28, tzinfo=tzlocal())
-nwbfile = NWBFile(session_description='Demonstrate `process_nwb` on an NWBFile',
-                  identifier='NWB123',
-                  session_start_time=start_time)
-device = nwbfile.create_device(name='ECoG_grid')
-electrode_group = nwbfile.create_electrode_group('Grid',
-                                                 description='Grid',
-                                                 location='cortex',
-                                                 device=device)
-for idx in range(4):
-    nwbfile.add_electrode(id=idx,
-                          x=1.0, y=2.0, z=3.0,
-                          imp=float(-idx),
-                          location='cortex', filtering='none',
-                          group=electrode_group)
-electrodes = nwbfile.create_electrode_table_region(list(range(4)), 'Electrodes')
+nwbfile, device, electrode_group, electrodes = generate_nwbfile()
 
 
 # %%
