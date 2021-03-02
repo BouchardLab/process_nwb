@@ -19,19 +19,22 @@ parser.add_argument('--filters', type=str, default='rat',
                     choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
 parser.add_argument('--all_filters', action='store_false')
+parser.add_argument('--acq_name', type=str, default='ElectricalSeries',
+                    help='Name of acquisition in NWB file')
 args = parser.parse_args()
 
 folder = args.folder
 frequency = args.frequency
 filters = args.filters
 hg_only = ~args.all_filters
+acq_name = str(args.acq_name)
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
 for fname in files:
     print('Processing {}'.format(fname))
     with NWBHDF5IO(fname, 'a') as io:
         nwbfile = io.read()
-        electrical_series = nwbfile.acquisition['ElectricalSeries']
+        electrical_series = nwbfile.acquisition[acq_name]
         nwbfile.create_processing_module(name='preprocessing',
                                          description='Preprocessing.')
 
