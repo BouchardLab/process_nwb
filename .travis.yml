@@ -11,8 +11,12 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda env create -q -n test python=$TRAVIS_PYTHON_VERSION --file environment-dev.yml
+    - echo $TRAVIS_PYTHON_VERSION
+    - conda env create -q -n test
+    - which pip
     - conda activate test
+    - conda list
+    - conda env update --file environment-dev.yml
     - conda list
     - conda install codecov pytest-cov
     - python setup.py build
