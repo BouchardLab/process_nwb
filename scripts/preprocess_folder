@@ -26,7 +26,7 @@ args = parser.parse_args()
 folder = args.folder
 frequency = args.frequency
 filters = args.filters
-hg_only = ~args.all_filters
+hg_only = args.all_filters
 acq_name = str(args.acq_name)
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
