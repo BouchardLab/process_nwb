@@ -18,7 +18,7 @@ parser.add_argument('--frequency', type=float, default=400., help='Frequency to 
 parser.add_argument('--filters', type=str, default='rat',
                     choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
-parser.add_argument('--all_filters', action='store_false')
+parser.add_argument('--all_filters', action='store_true')
 parser.add_argument('--acq_name', type=str, default='ElectricalSeries',
                     help='Name of acquisition in NWB file')
 args = parser.parse_args()
@@ -26,7 +26,7 @@ args = parser.parse_args()
 folder = args.folder
 frequency = args.frequency
 filters = args.filters
-hg_only = args.all_filters
+hg_only = not args.all_filters
 acq_name = str(args.acq_name)
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
