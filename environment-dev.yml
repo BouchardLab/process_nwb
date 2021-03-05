@@ -6,6 +6,7 @@ dependencies:
   - flake8
   - pytest
   - sphinx
+  - h5py
   - pip
   - pip:
     - pynwb
