@@ -269,7 +269,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         npad = int(rate)
     if chunked:
         if not abs_only:
-            raise NotImplementError("Can't get phase from chunked wavelet transform")
+            raise NotImplementError("Phase is not implemented for chunked wavelet transform")
 
         X_wvlt_abs = ChBandIterator(X, rate, filters=filters, npad=npad, hg_only=hg_only)
         cfs = X_wvlt_abs.cfs
