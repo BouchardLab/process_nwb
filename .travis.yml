@@ -21,7 +21,7 @@ install:
 script:
     - flake8 process_nwb tests
     - preprocess_folder -h
-    - pytest -sv --cov=./ tests
+    - travis_wait pytest -sv --cov=./ tests
     - sphinx-build -W -b html docs/source docs/build
 after_success:
     - codecov
