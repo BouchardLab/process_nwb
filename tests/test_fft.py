@@ -33,9 +33,10 @@ def test_rfft_fix(data):
     ifft(X, axis=0)
 
 
-def test_roundtrip(data):
+@pytest.mark.parameterize("forw, inv", [(rfft, irfft), (fft, ifft)])
+def test_roundtrip(forw, inv):
     """Test that patched functions are setup correctly.
     """
-    X = data
-    assert_allclose(irfft(rfft(X, axis=0), axis=0), X)
-    assert_allclose(ifft(fft(X, axis=0), axis=0), X)
+    for X in [np.random.randn(18134054, 2), np.random.randn(150, 2)]:
+        assert_allclose(inv(forw(X, axis=0), axis=0), X)
+        assert_allclose(inv(forw(X, axis=0), axis=0), X)
