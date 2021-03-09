@@ -36,5 +36,5 @@ def test_roundtrip(X):
     """Test that patched functions are setup correctly.
     """
     forw, inv = fft, ifft
-    # Only test short sequency (numpy)
+    assert_allclose(inv(forw(X[:2**24 + 1], axis=0), axis=0), X[:2**24 + 1])
     assert_allclose(inv(forw(X[:150], axis=0), axis=0), X[:150])
