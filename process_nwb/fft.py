@@ -8,6 +8,7 @@ try:
 
     string = ("Internal error occurred: b'Intel MKL DFTI ERROR: "
               + "Inconsistent configuration parameters'")
+
     def segfault(*args):
         raise ValueError(string)
 
