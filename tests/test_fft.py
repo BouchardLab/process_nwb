@@ -24,10 +24,17 @@ def test_rfft_fix(myfft, X):
     myfft(X, axis=0)
 
 
-@pytest.mark.parametrize("forwinv", [(rfft, irfft), (fft, ifft)])
-def test_roundtrip(forwinv, X):
+def test_roundtrip_r(X):
+    """Test that patched real functions are setup correctly.
+    """
+    forw, inv = rfft, irfft
+    assert_allclose(inv(forw(X, axis=0), axis=0), X)
+    assert_allclose(inv(forw(X[:150], axis=0), axis=0), X[:150])
+
+
+def test_roundtrip(X):
     """Test that patched functions are setup correctly.
     """
-    forw, inv = forwinv
-    assert_allclose(inv(forw(X, axis=0), axis=0), X)
+    forw, inv = fft, ifft
+    # Only test short sequency (numpy)
     assert_allclose(inv(forw(X[:150], axis=0), axis=0), X[:150])
