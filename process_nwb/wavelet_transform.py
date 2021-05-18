@@ -61,7 +61,7 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=None):
+def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1000):
     """Apply a wavelet transform using a prespecified set of filters.
 
     Calculates the center frequencies and bandwidths for the wavelets and applies them along with
@@ -85,7 +85,9 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         Precomputed product of X_fft and heavyside. Useful for when bands are computed
         independently.
     npad : int
-        Length of padding in samples.
+        Length of padding in samples. Default 1000.
+    npad : int
+        Padding to add to beginning and end of timeseries. Default 1000.
 
     Returns
     -------
@@ -98,8 +100,6 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
     sds : ndarray
         Bandwidths used.
     """
-    if npad is None:
-        npad = int(rate)
     if X_fft_h is None:
         npads, to_removes, _ = _npads(X, npad)
         X = _smart_pad(X, npads)
@@ -161,7 +161,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
 
 
 def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
-                            abs_only=True, npad=None):
+                            abs_only=True, npad=1000):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
 
@@ -187,7 +187,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     abs_only : bool
         If True, only the amplitude is stored.
     npad : int
-        Length of padding in samples.
+        Padding to add to beginning and end of timeseries. Default 1000.
 
     Returns
     -------
@@ -198,8 +198,6 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     """
     X = elec_series.data[:]
     rate = elec_series.rate
-    if npad is None:
-        npad = int(rate)
     X_wvlt, _, cfs, sds = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
                                             hg_only=hg_only, npad=npad)
     elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
