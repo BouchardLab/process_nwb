@@ -14,7 +14,10 @@ parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\n2) Remove 60Hz noise and remove and store the CAR, and' +
                                  '\n3) Perform and store a wavelet decomposition.')
 parser.add_argument('folder', type=str, help='Folder')
-parser.add_argument('--frequency', type=float, default=400., help='Frequency to resample to.')
+parser.add_argument('--initial_resample_rate', type=float, default=3200., help='Frequency to resample '
+                    'to before performing wavelet transform.')
+parser.add_argument('--final_resample_rate', type=float, default=400., help='Frequency to resample '
+                    'to after calculating wavelet amplitudes.')
 parser.add_argument('--filters', type=str, default='rat',
                     choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
@@ -24,7 +27,8 @@ parser.add_argument('--acq_name', type=str, default='ElectricalSeries',
 args = parser.parse_args()
 
 folder = args.folder
-frequency = args.frequency
+initial_resample_rate = args.initial_resample_rate
+final_resample_rate = args.final_resample_rate
 filters = args.filters
 hg_only = not args.all_filters
 acq_name = str(args.acq_name)
@@ -40,7 +44,7 @@ for fname in files:
 
         _, electrical_series_ds = store_resample(electrical_series,
                                                  nwbfile.processing['preprocessing'],
-                                                 frequency)
+                                                 initial_resample_rate)
         del _
 
         _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
@@ -50,7 +54,8 @@ for fname in files:
         _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
                                                             nwbfile.processing['preprocessing'],
                                                             filters=filters,
-                                                            hg_only=hg_only)
+                                                            hg_only=hg_only,
+                                                            post_resample_rate=final_resample_rate)
         del _
 
         io.write(nwbfile)

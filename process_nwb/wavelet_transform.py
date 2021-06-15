@@ -1,9 +1,10 @@
 import numpy as np
 
-from .fft import fftfreq, fft, ifft
-from .utils import (_npads, _smart_pad, _trim,
-                    log_spaced_cfs, const_Q_sds,
-                    chang_sds)
+from process_nwb.resample import resample
+from process_nwb.fft import fftfreq, fft, ifft
+from process_nwb.utils import (_npads, _smart_pad, _trim,
+                               log_spaced_cfs, const_Q_sds,
+                               chang_sds)
 
 from pynwb.misc import DecompositionSeries
 
@@ -161,7 +162,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1
 
 
 def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
-                            abs_only=True, npad=1000):
+                            abs_only=True, npad=1000, post_resample_rate=None):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
 
@@ -188,6 +189,8 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         If True, only the amplitude is stored.
     npad : int
         Padding to add to beginning and end of timeseries. Default 1000.
+    post_resample_rate : float
+        If not `None`, resample the computed wavelet amplitudes to this rate.
 
     Returns
     -------
@@ -200,6 +203,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     rate = elec_series.rate
     X_wvlt, _, cfs, sds = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
                                             hg_only=hg_only, npad=npad)
+    amplitude = abs(X_wvlt)
+    if post_resample_rate is not None:
+        amplitude = resample(amplitude, post_resample_rate, rate)
+        rate = post_resample_rate
     elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
                                                abs(X_wvlt),
                                                metric='amplitude',
@@ -210,6 +217,8 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                             elec_series.description))
     series = [elec_series_wvlt_amp]
     if not abs_only:
+        if post_resample_rate is not None:
+            raise ValueError('Wavelet phase should not be resampled.')
         elec_series_wvlt_phase = DecompositionSeries('wvlt_phase_' + elec_series.name,
                                                      np.angle(X_wvlt),
                                                      metric='phase',
