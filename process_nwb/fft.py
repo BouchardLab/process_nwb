@@ -74,6 +74,6 @@ except ImportError:
     except ImportError:
         from numpy.fft import rfft, irfft, fft, ifft
 
-from scipy.fft import rfftfreq, fftfreq, ifftshift
+from scipy.fft import rfft, irfft, fft, ifft
 
 __all__ = ['rfftfreq', 'fftfreq', 'ifftshift', 'fft', 'ifft', 'rfft', 'irfft']
