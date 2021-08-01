@@ -146,14 +146,14 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=N
         h = np.zeros(len(freq))
         h[freq > 0] = 2.
         h = h[:, np.newaxis]
-        X_fft_h = fft(X, axis=0) * h
+        X_fft_h = fft(X, axis=0, workers=-1) * h
 
     for ii, f in enumerate(filters):
         if f is None:
-            Xh[..., ii] = ifft(X_fft_h, axis=0)
+            Xh[..., ii] = ifft(X_fft_h, axis=0, workers=-1)
         else:
             f = f / np.linalg.norm(f)
-            Xh[..., ii] = ifft(X_fft_h * f[:, np.newaxis], axis=0)
+            Xh[..., ii] = ifft(X_fft_h * f[:, np.newaxis], axis=0, workers=-1)
 
     Xh = _trim(Xh, to_removes)
 

@@ -27,7 +27,7 @@ def _apply_notches(X, notches, rate, fft=True):
     delta = 1.
     if fft:
         fs = rfftfreq(X.shape[0], 1. / rate)
-        fd = rfft(X, axis=0)
+        fd = rfft(X, axis=0, workers=-1)
     else:
         nyquist = rate / 2.
         n_taps = 1001
@@ -44,7 +44,7 @@ def _apply_notches(X, notches, rate, fft=True):
             filt = firwin2(n_taps, freq, gain)
             Xp = filtfilt(filt, np.array([1]), X, axis=0)
     if fft:
-        Xp = irfft(fd, n=X.shape[0], axis=0)
+        Xp = irfft(fd, n=X.shape[0], axis=0, workers=-1)
     return Xp
 
 
