@@ -74,18 +74,18 @@ def resample_func(X, num, npad=1000, pad='reflect_limited', real=True):
     shorter = new_len < old_len
     use_len = new_len if shorter else old_len
     if real:
-        X_fft = rfft(X, axis=0)
+        X_fft = rfft(X, axis=0, workers=-1)
         if use_len % 2 == 0:
             nyq = use_len // 2
             X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
         X_fft *= ratio
     else:
-        X_fft = fft(X, axis=0)
+        X_fft = fft(X, axis=0, workers=-1)
         X_fft[0] *= ratio
     if real:
-        y = irfft(X_fft, n=new_len, axis=0)
+        y = irfft(X_fft, n=new_len, axis=0, workers=-1)
     else:
-        y = ifft(X_fft, n=new_len, axis=0).real
+        y = ifft(X_fft, n=new_len, axis=0, workers=-1).real
 
     # now let's trim it back to the correct size (if there was padding)
     y = _trim(y, to_removes)
