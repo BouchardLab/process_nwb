@@ -1,7 +1,6 @@
 dependencies:
   - numpy
   - scipy
-  - mkl_fft
   - pip
   - pip:
     - pynwb
