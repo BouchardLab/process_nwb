@@ -122,7 +122,15 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
 
     n_time = X.shape[0]
     new_n_time = int(np.ceil(n_time * new_freq / old_freq))
-    Xds = resample_func(X, new_n_time, npad=npad, real=real)
+    loop = False
+    if (n_time + 2 * npad) >= 10**9 and X.shape[1] > 1:
+        loop = True
+    if loop:
+        Xds = np.zeros((new_n_time,) + X.shape[1:])
+        for ii in range(X.shape[1]):
+            Xds[:, ii] = resample_func(X[:, ii], new_n_time, npad=npad, real=real)[:, 0]
+    else:
+        Xds = resample_func(X, new_n_time, npad=npad, real=real)
     if axis != 0:
         X = np.swapaxes(X, 0, axis)
 
