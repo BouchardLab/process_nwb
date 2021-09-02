@@ -52,10 +52,12 @@ def test_resample_low_freqs():
 
 
 def test_long_resample():
-    time = 10**9 + 1
-    X = np.random.randn(time, 2)
+    """Make sure looping resample limit gives the same value.
+    """
+    time = 5*10**7 + 1
+    X = np.random.randn(time, 10)
     old_freq = 12123.1
     new_freq = 12000.0
     X0 = resample(X, new_freq, old_freq)
     X1 = resample(X[:, [0]], new_freq, old_freq)
-    assert_allclose(X0[0], X1[0])
+    assert_allclose(X0[:, 0], X1[:, 0])

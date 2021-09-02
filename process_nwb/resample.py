@@ -74,18 +74,19 @@ def resample_func(X, num, npad=1000, pad='reflect_limited', real=True):
     shorter = new_len < old_len
     use_len = new_len if shorter else old_len
     if real:
-        X_fft = rfft(X, axis=0, workers=-1)
+        X_fft = rfft(X, axis=0, workers=-1, overwrite_x=True)
         if use_len % 2 == 0:
             nyq = use_len // 2
             X_fft[nyq:nyq + 1] *= 2 if shorter else 0.5
         X_fft *= ratio
     else:
-        X_fft = fft(X, axis=0, workers=-1)
+        X_fft = fft(X, axis=0, workers=-1, overwrite_x=True)
         X_fft[0] *= ratio
+    del X
     if real:
-        y = irfft(X_fft, n=new_len, axis=0, workers=-1)
+        y = irfft(X_fft, n=new_len, axis=0, workers=-1, overwrite_x=True)
     else:
-        y = ifft(X_fft, n=new_len, axis=0, workers=-1).real
+        y = ifft(X_fft, n=new_len, axis=0, workers=-1, overwrite_x=True).real
 
     # now let's trim it back to the correct size (if there was padding)
     y = _trim(y, to_removes)
@@ -122,13 +123,15 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
 
     n_time = X.shape[0]
     new_n_time = int(np.ceil(n_time * new_freq / old_freq))
+
     loop = False
-    if (n_time + 2 * npad) >= 10**9 and X.shape[1] > 1:
+    if X.size >= 5*10**8 and X.shape[1] > 1:
         loop = True
+
     if loop:
         Xds = np.zeros((new_n_time,) + X.shape[1:])
         for ii in range(X.shape[1]):
-            Xds[:, ii] = resample_func(X[:, ii], new_n_time, npad=npad, real=real)[:, 0]
+            Xds[:, ii] = resample_func(X[:, [ii]], new_n_time, npad=npad, real=real)[:, 0]
     else:
         Xds = resample_func(X, new_n_time, npad=npad, real=real)
     if axis != 0:
