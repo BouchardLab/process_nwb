@@ -141,7 +141,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1
     for cf, sd in zip(cfs, sds):
         filters.append(gaussian(n_time, rate, cf, sd))
 
-    Xh = np.zeros(X.shape + (len(filters),), dtype=np.complex)
+    Xh = np.zeros(X.shape + (len(filters),), dtype=np.complex64)
     if X_fft_h is None:
         # Heavyside filter with 0 DC
         h = np.zeros(len(freq))
