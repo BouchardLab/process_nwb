@@ -54,7 +54,7 @@ def test_resample_low_freqs():
 def test_long_resample():
     """Make sure looping resample limit gives the same value.
     """
-    time = 5*10**7 + 1
+    time = 10**7 + 1
     X = np.random.randn(time, 10)
     old_freq = 12123.1
     new_freq = 12000.0

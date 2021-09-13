@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
-def resample_func(X, num, npad=1000, pad='reflect_limited', real=True):
+def resample_func(X, num, npad=0, pad='reflect_limited', real=True):
     """Resample an array. Operates along the first dimension of the array. This is the low-level
     code. Users shoud likely use `resample()` rather than this function.
 
@@ -46,7 +46,7 @@ def resample_func(X, num, npad=1000, pad='reflect_limited', real=True):
     num : int
         Number of samples in resampled signal.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 1000.
+        Padding to add to beginning and end of timeseries. Default 0.
     pad : str
         Type of padding. The default is ``'reflect_limited'``.
     real : bool
@@ -94,7 +94,7 @@ def resample_func(X, num, npad=1000, pad='reflect_limited', real=True):
     return y
 
 
-def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
+def resample(X, new_freq, old_freq, real=True, axis=0, npad=0):
     """Resamples the timeseries from the original sampling frequency to a new frequency.
 
     Parameters
@@ -110,7 +110,7 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
     axis : int
         Which axis to resample.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 1000.
+        Padding to add to beginning and end of timeseries. Default 0.
 
     Returns
     -------
@@ -125,7 +125,7 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
     new_n_time = int(np.ceil(n_time * new_freq / old_freq))
 
     loop = False
-    if X.size >= 5*10**8 and X.shape[1] > 1:
+    if X.size >= 10**8 and X.shape[1] > 1:
         loop = True
 
     if loop:
@@ -140,7 +140,7 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=1000):
     return Xds
 
 
-def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=1000):
+def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=0):
     """Resamples the `ElectricalSeries` from the original sampling frequency to a new frequency and
     store the results in a new ElectricalSeries.
 
@@ -158,7 +158,7 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=
         Scale the values by this. Can help with accuracy of downstream operations if the raw values
         are too small.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 1000.
+        Padding to add to beginning and end of timeseries. Default 0.
 
     Returns
     -------

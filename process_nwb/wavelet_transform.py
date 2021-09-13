@@ -62,7 +62,7 @@ def hamming(n_time, rate, min_freq, max_freq):
     return k
 
 
-def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1000):
+def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0):
     """Apply a wavelet transform using a prespecified set of filters.
 
     Calculates the center frequencies and bandwidths for the wavelets and applies them along with
@@ -86,9 +86,9 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1
         Precomputed product of X_fft and heavyside. Useful for when bands are computed
         independently.
     npad : int
-        Length of padding in samples. Default 1000.
+        Length of padding in samples. Default 0.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 1000.
+        Padding to add to beginning and end of timeseries. Default 0.
 
     Returns
     -------
@@ -162,7 +162,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=1
 
 
 def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
-                            abs_only=True, npad=1000, post_resample_rate=None):
+                            abs_only=True, npad=0, post_resample_rate=None):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
 
@@ -188,7 +188,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     abs_only : bool
         If True, only the amplitude is stored.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 1000.
+        Padding to add to beginning and end of timeseries. Default 0.
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
 
