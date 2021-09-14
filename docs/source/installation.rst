@@ -46,7 +46,6 @@ PyUoI requires
   * numpy
   * scipy
   * pynwb
-  * mkl_fft
 
 to run.
 
@@ -67,3 +66,4 @@ To build the docs you will additionally need
 
   * sphinx
   * sphinx_rtd_theme
+  * matplotlib
