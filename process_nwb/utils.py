@@ -5,6 +5,31 @@ from dateutil.tz import tzlocal
 from pynwb import NWBFile
 
 
+def dtype(X, precision):
+    """Return the type to cast to depending on precision and whether `X` is complex.
+
+    Parameters
+    ----------
+    X : ndarray
+        Input data.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
+    """
+    precision = precision.lower()
+    if precision not in ['single', 'double']:
+        raise ValueError(f'`precision` should be either `single` or `double`. Got {precision}.')
+    if np.iscomplexobj(X):
+        if precision == 'single':
+            return np.complex64
+        else:
+            return complex
+    else:
+        if precision == 'single':
+            return np.float32
+        else:
+            return float
+
+
 def log_spaced_cfs(fmin, fmax, ncfs):
     """Return log-spaced center frequencies.
 

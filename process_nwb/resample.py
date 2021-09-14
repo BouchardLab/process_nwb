@@ -1,8 +1,9 @@
 import numpy as np
+from scipy.fft import fft, ifft, rfft, irfft
+
 from pynwb.ecephys import ElectricalSeries
 
-from .utils import _npads, _smart_pad, _trim
-from .fft import fft, ifft, rfft, irfft
+from process_nwb.utils import _npads, _smart_pad, _trim, dtype
 
 
 """
@@ -35,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
-def resample_func(X, num, npad=0, pad='reflect_limited', real=True):
+def resample_func(X, num, npad=0, pad='reflect_limited', real=True, precision='single'):
     """Resample an array. Operates along the first dimension of the array. This is the low-level
     code. Users shoud likely use `resample()` rather than this function.
 
@@ -51,6 +52,8 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True):
         Type of padding. The default is ``'reflect_limited'``.
     real : bool
         Whether rfft should be used for resampling or fft.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -62,13 +65,13 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True):
     This uses edge padding to improve scipy.signal.resample's resampling method,
     which we have adapted for our use here.
     """
+    X_dtype = dtype(X, precision)
+    X = X.astype(X_dtype, copy=False)
     n_time = X.shape[0]
     ratio = float(num) / n_time
     npads, to_removes, new_len = _npads(X, npad, ratio=ratio)
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
-    if X.dtype != np.float64:
-        X = X.astype(np.float64)
     X = _smart_pad(X, npads, pad)
     old_len = len(X)
     shorter = new_len < old_len
@@ -94,7 +97,7 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True):
     return y
 
 
-def resample(X, new_freq, old_freq, real=True, axis=0, npad=0):
+def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single'):
     """Resamples the timeseries from the original sampling frequency to a new frequency.
 
     Parameters
@@ -111,12 +114,16 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0):
         Which axis to resample.
     npad : int
         Padding to add to beginning and end of timeseries. Default 0.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
     Xds : array
         Downsampled data, dimensions (n_time_new, ...)
     """
+    X_dtype = dtype(X, precision)
+    X = X.astype(X_dtype, copy=False)
     axis = axis % X.ndim
     if axis != 0:
         X = np.swapaxes(X, 0, axis)
@@ -129,18 +136,19 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0):
         loop = True
 
     if loop:
-        Xds = np.zeros((new_n_time,) + X.shape[1:])
+        Xds = np.zeros((new_n_time,) + X.shape[1:], dtype=X_dtype)
         for ii in range(X.shape[1]):
-            Xds[:, ii] = resample_func(X[:, [ii]], new_n_time, npad=npad, real=real)[:, 0]
+            Xds[:, ii] = resample_func(X[:, [ii]], new_n_time, npad=npad, real=real,
+                                       precision=precision)[:, 0]
     else:
-        Xds = resample_func(X, new_n_time, npad=npad, real=real)
+        Xds = resample_func(X, new_n_time, npad=npad, real=real, precision=precision)
     if axis != 0:
-        X = np.swapaxes(X, 0, axis)
+        Xds = np.swapaxes(Xds, 0, axis)
 
     return Xds
 
 
-def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=0):
+def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=0, precision='single'):
     """Resamples the `ElectricalSeries` from the original sampling frequency to a new frequency and
     store the results in a new ElectricalSeries.
 
@@ -159,6 +167,8 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=
         are too small.
     npad : int
         Padding to add to beginning and end of timeseries. Default 0.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -169,9 +179,11 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=
     """
     new_freq = float(new_freq)
     X = elec_series.data[:] * scaling
+    X_dtype = dtype(X, precision)
+    X = X.astype(X_dtype, copy=False)
     old_freq = elec_series.rate
 
-    X_ds = resample(X, new_freq, old_freq, axis=axis, npad=npad)
+    X_ds = resample(X, new_freq, old_freq, axis=axis, npad=npad, precision=precision)
 
     elec_series_ds = ElectricalSeries('downsampled_' + elec_series.name,
                                       X_ds,

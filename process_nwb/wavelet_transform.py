@@ -1,16 +1,17 @@
 import numpy as np
 
 from process_nwb.resample import resample
-from process_nwb.fft import fftfreq, fft, ifft
-from process_nwb.utils import (_npads, _smart_pad, _trim,
-                               log_spaced_cfs, const_Q_sds,
-                               chang_sds)
+from scipy.fft import fftfreq, fft, ifft
 
 from pynwb.misc import DecompositionSeries
 from hdmf.data_utils import AbstractDataChunkIterator, DataChunk
 
+from process_nwb.utils import (_npads, _smart_pad, _trim,
+                               log_spaced_cfs, const_Q_sds,
+                               chang_sds, dtype)
 
-def gaussian(n_time, rate, center, sd):
+
+def gaussian(n_time, rate, center, sd, precision='single'):
     """Generates a normalized gaussian kernel.
 
     Parameters
@@ -23,16 +24,19 @@ def gaussian(n_time, rate, center, sd):
         Center frequency (Hz).
     sd : float
         Bandwidth (Hz).
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
     """
     freq = fftfreq(n_time, 1. / rate)
+    X_dtype = dtype(freq, precision)
 
     k = np.exp((-(np.abs(freq) - center) ** 2) / (2 * (sd ** 2)))
     k /= np.linalg.norm(k)
 
-    return k
+    return k.astype(X_dtype, copy=False)
 
 
-def hamming(n_time, rate, min_freq, max_freq):
+def hamming(n_time, rate, min_freq, max_freq, precision='single'):
     """Generates a normalized Hamming kernel.
 
     Parameters
@@ -45,8 +49,11 @@ def hamming(n_time, rate, min_freq, max_freq):
         Band minimum frequency (Hz).
     max_freq : float
         Band maximum frequency (Hz).
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
     """
     freq = fftfreq(n_time, 1. / rate)
+    X_dtype = dtype(freq, precision)
 
     pos_in_window = np.logical_and(freq >= min_freq, freq <= max_freq)
     neg_in_window = np.logical_and(freq <= -min_freq, freq >= -max_freq)
@@ -60,10 +67,10 @@ def hamming(n_time, rate, min_freq, max_freq):
     k[neg_in_window] = window
     k /= np.linalg.norm(k)
 
-    return k
+    return k.astype(X_dtype, copy=False)
 
 
-def get_filterbank(filters, n_time, rate, hg_only):
+def get_filterbank(filters, n_time, rate, hg_only, precision='single'):
     """Get the filterbank and parameters.
 
     Parameters
@@ -81,6 +88,8 @@ def get_filterbank(filters, n_time, rate, hg_only):
         Number of samples per second.
     hg_only : bool
         If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -93,7 +102,7 @@ def get_filterbank(filters, n_time, rate, hg_only):
     """
     if isinstance(filters, list):
         return filters, None, None
-    
+
     # Calculate center frequencies
     if filters in ['human', 'changlab']:
         cfs = log_spaced_cfs(4.0749286538265, 200, 40)
@@ -106,7 +115,6 @@ def get_filterbank(filters, n_time, rate, hg_only):
     if hg_only:
         idxs = np.logical_and(cfs >= 70., cfs <= 150.)
         cfs = cfs[idxs]
-
 
     # Raise exception if sample rate too small
     if cfs.max() * 2. > np.nextafter(rate, np.inf):  # Allow floating point tolerance
@@ -125,7 +133,7 @@ def get_filterbank(filters, n_time, rate, hg_only):
 
     filters = []
     for cf, sd in zip(cfs, sds):
-        filters.append(gaussian(n_time, rate, cf, sd))
+        filters.append(gaussian(n_time, rate, cf, sd, precision=precision))
 
     return filters, cfs, sds
 
@@ -148,19 +156,24 @@ class ChannelBandIterator(AbstractDataChunkIterator):
         If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
     """
-    def __init__(self, X, rate, filters='rat', npad=None, hg_only=True, post_resample_rate=None):
+    def __init__(self, X, rate, filters='rat', npad=None, hg_only=True, post_resample_rate=None,
+                 precision='single'):
+        self.X_dtype = dtype(X, precision)
+        X = X.astype(self.X_dtype, copy=False)
         self.X = X
         self.rate = rate
         self.npad = npad
         self.post_resample_rate = post_resample_rate
+        self.precision = precision
 
         # Need to pad X before predicting chunk and filter shape:
         self.npads, self.to_removes, _ = _npads(X, npad)
         self.wavelet_time = X.shape[0] + 2 * npad
-        self.filterbank, self.cfs, self.sds = get_filterbank(
-            filters, self.wavelet_time, self.rate, hg_only
-        )
+        self.filterbank, self.cfs, self.sds = get_filterbank(filters, self.wavelet_time, self.rate,
+                                                             hg_only, precision=self.precision)
         self.resample_time = self.X.shape[0]
         if post_resample_rate is not None:
             self.resample_time = int(np.ceil(self.wavelet_time * post_resample_rate / rate))
@@ -190,12 +203,14 @@ class ChannelBandIterator(AbstractDataChunkIterator):
             self.rate,
             filters=[self.filterbank[band]],
             X_fft_h=self.X_fft_h,
-            to_removes=self.to_removes
+            to_removes=self.to_removes,
+            precision=self.precision
         )
+        data = np.abs(data)
         if self.post_resample_rate is not None:
-            data = resample(data, self.post_resample_rate, self.rate)
+            data = resample(data, self.post_resample_rate, self.rate, precision=self.precision)
         data = np.squeeze(data)
-        return DataChunk(data=np.abs(data), selection=np.s_[:data.shape[0], ch, band])
+        return DataChunk(data=data, selection=np.s_[:data.shape[0], ch, band])
 
     next = __next__
 
@@ -214,7 +229,8 @@ class ChannelBandIterator(AbstractDataChunkIterator):
         return (self.resample_time, self.nch, self.nbands)
 
 
-def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0, to_removes=None):
+def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0, to_removes=None,
+                      precision='single'):
     """Apply a wavelet transform using a prespecified set of filters.
 
     Calculates the center frequencies and bandwidths for the wavelets and applies them along with
@@ -241,6 +257,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
         Length of padding in samples. Default 0.
     npad : int
         Padding to add to beginning and end of timeseries. Default 0.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -254,16 +272,19 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
         Bandwidths used.
     """
     if X_fft_h is None:
+        X_dtype = dtype(X, precision)
+        X = X.astype(X_dtype, copy=False)
         npads, to_removes, _ = _npads(X, npad)
         X = _smart_pad(X, npads)
         n_time = X.shape[0]
     else:
         n_time = X_fft_h.shape[0]
+        X_fft_h = X_fft_h.astype(dtype(X_fft_h, precision), copy=False)
     freq = fftfreq(n_time, 1. / rate)
 
-    filters, cfs, sds = get_filterbank(filters, n_time, rate, hg_only)
+    filters, cfs, sds = get_filterbank(filters, n_time, rate, hg_only, precision=precision)
 
-    Xh = np.zeros(X.shape + (len(filters),), dtype=np.complex)
+    Xh = np.zeros(X.shape + (len(filters),), dtype=dtype(complex(1.), precision=precision))
     if X_fft_h is None:
         # Heavyside filter with 0 DC
         h = np.zeros(len(freq))
@@ -283,8 +304,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
     return Xh, X_fft_h, cfs, sds
 
 
-def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, X_fft_h=None,
-                            abs_only=True, npad=0, post_resample_rate=None, chunked=True):
+def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, abs_only=True,
+                            npad=0, post_resample_rate=None, chunked=True, precision='single'):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
 
@@ -305,14 +326,14 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
     hg_only : bool
         If True, only the amplitudes in the high gamma range [70-150 Hz] is computed.
-    X_fft_h : ndarray (n_time, n_channels)
-        Precomputed product of X_fft and heavyside.
     abs_only : bool
         If True, only the amplitude is stored.
     npad : int
         Padding to add to beginning and end of timeseries. Default 0.
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -322,11 +343,14 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         List of NWB objects.
     """
     X = elec_series.data[:]
+    X_dtype = dtype(X, precision)
+    X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
     if chunked:
         if not abs_only:
             raise NotImplementedError("Phase is not implemented for chunked wavelet transform.")
-        X_wvlt_abs = ChannelBandIterator(X, rate, filters=filters, npad=npad, hg_only=hg_only)
+        X_wvlt_abs = ChannelBandIterator(X, rate, filters=filters, npad=npad, hg_only=hg_only,
+                                         post_resample_rate=post_resample_rate, precision=precision)
         cfs = X_wvlt_abs.cfs
         sds = X_wvlt_abs.sds
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
@@ -338,13 +362,13 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
-        X_wvlt = None # this function still needs to return something 
+        X_wvlt = None
     else:
-        X_wvlt, _, cfs, sds = wavelet_transform(X, rate, filters=filters, X_fft_h=X_fft_h,
-                                                hg_only=hg_only, npad=npad)
+        X_wvlt, _, cfs, sds = wavelet_transform(X, rate, filters=filters, hg_only=hg_only,
+                                                npad=npad, precision=precision)
         amplitude = abs(X_wvlt)
         if post_resample_rate is not None:
-            amplitude = resample(amplitude, post_resample_rate, rate)
+            amplitude = resample(amplitude, post_resample_rate, rate, precision=precision)
             X_wvlt = amplitude
             rate = post_resample_rate
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
