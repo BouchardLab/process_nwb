@@ -19,14 +19,13 @@ def neural_data():
     duration = 10.  # seconds
     sample_rate = 10000.  # Hz
     neural_data = generate_synthetic_data(duration, num_channels, sample_rate)
-    return  neural_data
+    return neural_data
+
 
 def test_pipeline(neural_data):
     """Test that the NWB pipeline gives equal results to running preprocessing functions
     by hand.
     """
-    num_channels = 64
-    duration = 10.  # seconds
     sample_rate = 10000.  # Hz
     new_sample_rate = 500.  # hz
 
@@ -96,8 +95,6 @@ def test_pipeline(neural_data):
 def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
     """Test that the NWB runs with the chunked versions.
     """
-    num_channels = 64
-    duration = 10.  # seconds
     sample_rate = 10000.  # Hz
     new_sample_rate = 500.  # Hz
 
@@ -117,12 +114,12 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
 
         # Resample
         _, rs_series = store_resample(electrical_series,
-                                                nwbfile.processing['preprocessing'],
-                                                new_sample_rate)
+                                      nwbfile.processing['preprocessing'],
+                                      new_sample_rate)
 
         # Linenoise and CAR
         _, car_series = store_linenoise_notch_CAR(rs_series,
-                                                             nwbfile.processing['preprocessing'])
+                                                  nwbfile.processing['preprocessing'])
 
         # Wavelet transform
         store_wavelet_transform(car_series,
@@ -136,4 +133,5 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
         with NWBHDF5IO(os.path.join(tmpdir, name), mode='r') as io:
             nwbfile = io.read()
             arrays.append(nwbfile.processing['preprocessing']['wvlt_amp_CAR_ln_downsampled_ECoG_data'].data[:])
-    assert_allclose(*arrays)
+    assert np.dtype(arrays[0].dtype) == np.dtype(arrays[1].dtype)
+    assert_allclose(*arrays, rtol=0.01)

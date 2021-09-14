@@ -19,7 +19,12 @@ def test_wavelet_return(filters, hg_only, dim, rate):
     X = np.random.randn(1000, 32)
     Xh, _, cfs, sds = wavelet_transform(X, rate, filters=filters, hg_only=hg_only)
     assert Xh.shape == (X.shape[0], X.shape[1], dim)
-    assert Xh.dtype == np.complex
+    assert np.dtype(Xh.dtype) == np.dtype(np.complex64)
+
+    Xh, _, cfs, sds = wavelet_transform(X, rate, filters=filters, hg_only=hg_only,
+                                        precision='double')
+    assert Xh.shape == (X.shape[0], X.shape[1], dim)
+    assert np.dtype(Xh.dtype) == np.dtype(complex)
 
 
 @pytest.mark.parametrize("filters,hg_only,dim,rate", [('human', False, 40, 399.),

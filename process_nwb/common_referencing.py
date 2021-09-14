@@ -2,8 +2,10 @@ import numpy as np
 
 from pynwb.ecephys import ElectricalSeries
 
+from process_nwb.utils import dtype
 
-def CAR(X, mean_frac=.95, round_func=np.ceil):
+
+def CAR(X, mean_frac=.95, round_func=np.ceil, precision='single'):
     """Compute the common average reference across channels.
 
     Parameters
@@ -16,12 +18,15 @@ def CAR(X, mean_frac=.95, round_func=np.ceil):
         Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
     avg : ndarray, (n_time, 1)
        Common average reference.
     """
+    X = X.astype(dtype(X, precision), copy=False)
     n_time, n_channels = X.shape
     if mean_frac == 1.:
         avg = np.nanmean(X, axis=1, keepdims=True)
@@ -34,7 +39,7 @@ def CAR(X, mean_frac=.95, round_func=np.ceil):
     return avg
 
 
-def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
+def subtract_CAR(X, mean_frac=.95, round_func=np.ceil, precision='single'):
     """Compute and subtract the common average (mean) reference across channels.
 
     Parameters
@@ -47,17 +52,21 @@ def subtract_CAR(X, mean_frac=.95, round_func=np.ceil):
         Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
     Xp : ndarray, (n_time, n_channels)
        Common average reference.
     """
-    X_CAR = X - CAR(X, mean_frac=mean_frac, round_func=round_func)
+    X = X.astype(dtype(X, precision), copy=False)
+    X_CAR = X - CAR(X, mean_frac=mean_frac, round_func=round_func, precision=precision)
     return X_CAR
 
 
-def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil):
+def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.ceil,
+                       precision='single'):
     """Compute and subtract the common average (mean) reference across channels.
 
     Parameters
@@ -72,6 +81,8 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
         Lower fractions interpolate between the mean and the median.
     round_func : callable
         Function which specifies how to round to the channel number.
+    precision : str
+        Either `single` for float32/complex64 or `double` for float/complex.
 
     Returns
     -------
@@ -81,9 +92,10 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
         ElectricalSeries that holds X_CAR.
     """
     X = elec_series.data[:]
+    X = X.astype(dtype(X, precision), copy=False)
     rate = elec_series.rate
 
-    avg = CAR(X, mean_frac=mean_frac, round_func=round_func)
+    avg = CAR(X, mean_frac=mean_frac, round_func=round_func, precision=precision)
     X_CAR = X - avg
 
     elec_series_CAR = ElectricalSeries('CAR_' + elec_series.name,

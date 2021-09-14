@@ -103,7 +103,8 @@ _ = plt.title('One channel of neural data after re-referencing from resample')
 tf_data, _ = store_wavelet_transform(car_series,
                                      nwbfile.processing['preprocessing'],
                                      filters='rat',
-                                     hg_only=True)
+                                     hg_only=True,
+                                     chunked=False)
 tf_data = abs(tf_data)
 
 
