@@ -75,15 +75,15 @@ def get_filterbank(filters, n_time, rate, hg_only, precision='single'):
 
     Parameters
     ----------
-    n_time : int
-        Input data time dimension.
-    filters : str (optional)
+    filters : str or list
         Which type of filters to use. Options are
         'rat': center frequencies spanning 2-1200 Hz, constant Q, 54 bands
         'human': center frequencies spanning 4-200 Hz, constant Q, 40 bands
         'changlab': center frequencies spanning 4-200 Hz, variable Q, 40 bands
         Note - calculating center frequencies above rate/2 raises a ValueError
         If filters is a list, it is assumed to already be correctly formatted.
+    n_time : int
+        Input data time dimension.    
     rate : float
         Number of samples per second.
     hg_only : bool
