@@ -255,8 +255,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
         independently.
     npad : int
         Length of padding in samples. Default 0.
-    npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+    to_removes : int
+        Number of samples to remove at the beginning and end of the timeseries. Default None.
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
 
@@ -332,8 +332,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         Padding to add to beginning and end of timeseries. Default 0.
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
+    chunked : bool
+        If True, calculate wavelet transform one channel at a time and store iteratively into nwb. Default True
     precision : str
-        Either `single` for float32/complex64 or `double` for float/complex.
+        Either `single` for float32/complex64 or `double` for float/complex. Default single.
 
     Returns
     -------
@@ -358,7 +360,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=rate,
+                                                   rate=post_resample_rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
