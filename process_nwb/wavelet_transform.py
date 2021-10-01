@@ -333,7 +333,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
     chunked : bool
-        If True, calculate wavelet transform one channel at a time and store iteratively into nwb. Default True
+        If True, calculate wavelet transform one channel and band at a time and store iteratively into nwb. Default True
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex. Default single.
 
@@ -348,6 +348,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     X_dtype = dtype(X, precision)
     X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
+    
+    if post_resample_rate is None:
+        post_resample_rate = rate
+    
     if chunked:
         if not abs_only:
             raise NotImplementedError("Phase is not implemented for chunked wavelet transform.")
