@@ -159,6 +159,7 @@ class ChannelBandIterator(AbstractDataChunkIterator):
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
     """
+
     def __init__(self, X, rate, filters='rat', npad=None, hg_only=True, post_resample_rate=None,
                  precision='single'):
         self.X_dtype = dtype(X, precision)
@@ -348,10 +349,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     X_dtype = dtype(X, precision)
     X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
-    
-    if post_resample_rate is None:
-        post_resample_rate = rate
-    
+
+    if post_resample_rate is not None:
+        rate = post_resample_rate
+
     if chunked:
         if not abs_only:
             raise NotImplementedError("Phase is not implemented for chunked wavelet transform.")
@@ -364,7 +365,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=post_resample_rate,
+                                                   rate=rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
