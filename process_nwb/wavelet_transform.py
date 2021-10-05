@@ -83,7 +83,7 @@ def get_filterbank(filters, n_time, rate, hg_only, precision='single'):
         Note - calculating center frequencies above rate/2 raises a ValueError
         If filters is a list, it is assumed to already be correctly formatted.
     n_time : int
-        Input data time dimension.    
+        Input data time dimension.
     rate : float
         Number of samples per second.
     hg_only : bool
