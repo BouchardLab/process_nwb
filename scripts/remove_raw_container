@@ -12,6 +12,7 @@ args = parser.parse_args()
 
 src_file = args.src_file
 dst_file = args.dst_file
+
 overwrite_flag = False
 
 if dst_file == src_file:
@@ -30,8 +31,9 @@ with NWBHDF5IO(src_file, mode='a') as src_io:
     for es_name in raw_dset.electrical_series:
         src_nwb.add_acquisition(raw_dset[es_name])
 
-    with NWBHDF5IO(dst_file, mode='w') as dst_io:
-        dst_io.export(src_io=src_io, nwbfile=src_nwb)
+    with _HDF5IO(dst_file, mode='w') as dst_io:
+        # Still linking .. why?!? (WIP)
+        dst_io.export(src_io=src_io, container=src_nwb, write_args={'link_data': False})
 
 if overwrite_flag:
     os.remove(src_file)
