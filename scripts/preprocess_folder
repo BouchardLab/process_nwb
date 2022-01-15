@@ -27,6 +27,7 @@ parser.add_argument('--acq_name', type=str, default='ECoG',
                     help='Name of acquisition in NWB file')
 parser.add_argument('--raw_flag', action='store_true', help='Electrical series are ' + 
                     'stored in Raw container within acquisition')
+
 args = parser.parse_args()
 
 folder = args.folder
@@ -34,7 +35,7 @@ initial_resample_rate = args.initial_resample_rate
 final_resample_rate = args.final_resample_rate
 filters = args.filters
 hg_only = not args.all_filters
-raw_flag = args.raw
+raw_flag = args.raw_flag
 acq_name = str(args.acq_name)
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
@@ -53,6 +54,7 @@ for fname in files:
             electrical_series = nwbfile.acquisition['Raw'][acq_name]
         else:
             electrical_series = nwbfile.acquisition[acq_name]
+            
         nwbfile.create_processing_module(name='preprocessing',
                                          description='Preprocessing.')
 
