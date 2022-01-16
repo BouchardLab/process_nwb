@@ -350,9 +350,6 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
 
-    if post_resample_rate is not None:
-        rate = post_resample_rate
-
     if chunked:
         if not abs_only:
             raise NotImplementedError("Phase is not implemented for chunked wavelet transform.")
@@ -365,7 +362,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=rate,
+                                                   rate=post_resample_rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
@@ -377,13 +374,12 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         if post_resample_rate is not None:
             amplitude = resample(amplitude, post_resample_rate, rate, precision=precision)
             X_wvlt = amplitude
-            rate = post_resample_rate
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
                                                    amplitude,
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=rate,
+                                                   rate=post_resample_rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
