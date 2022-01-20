@@ -25,6 +25,7 @@ parser.add_argument('--filters', type=str, default='rat',
 parser.add_argument('--all_filters', action='store_true')
 parser.add_argument('--acq_name', type=str, default='ECoG',
                     help='Name of acquisition in NWB file')
+
 args = parser.parse_args()
 
 folder = args.folder
@@ -46,7 +47,12 @@ for fname in files:
     print('Processing {}'.format(fname))
     with NWBHDF5IO(fname, 'a') as io:
         nwbfile = io.read()
-        electrical_series = nwbfile.acquisition[acq_name]
+        try:
+            electrical_series = nwbfile.acquisition[acq_name]
+        except KeyError:
+            # in case NWB file is in a legacy format
+            electrical_series = nwbfile.acquisition['Raw'][acq_name]
+
         nwbfile.create_processing_module(name='preprocessing',
                                          description='Preprocessing.')
 
