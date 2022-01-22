@@ -30,4 +30,4 @@ with NWBHDF5IO(src_file, mode='a') as src_io:
         dst_io.export(src_io=src_io, nwbfile=src_nwb)
 
 if overwrite_flag:
-    os.replace(src_file, dst_file)
+    os.replace(dst_file, src_file)
