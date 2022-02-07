@@ -350,8 +350,9 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
 
+    final_rate = rate
     if post_resample_rate is not None:
-        rate = post_resample_rate
+        final_rate = post_resample_rate
 
     if chunked:
         if not abs_only:
@@ -365,7 +366,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=rate,
+                                                   rate=final_rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
@@ -383,7 +384,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
-                                                   rate=rate,
+                                                   rate=final_rate,
                                                    description=('Wavlet: ' +
                                                                 elec_series.description))
         series = [elec_series_wvlt_amp]
@@ -395,7 +396,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                          metric='phase',
                                                          source_timeseries=elec_series,
                                                          starting_time=elec_series.starting_time,
-                                                         rate=rate,
+                                                         rate=final_rate,
                                                          description=('Wavlet: ' +
                                                                       elec_series.description))
             series.append(elec_series_wvlt_phase)
