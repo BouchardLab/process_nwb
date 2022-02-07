@@ -22,7 +22,8 @@ def neural_data():
     return neural_data
 
 
-def test_pipeline(neural_data):
+@pytest.mark.parametrize("post_resample_rate", [None, 200.])
+def test_pipeline(neural_data, post_resample_rate):
     """Test that the NWB pipeline gives equal results to running preprocessing functions
     by hand.
     """
@@ -58,6 +59,7 @@ def test_pipeline(neural_data):
     assert_array_equal(car_series.data[:], car_data)
 
     # Wavelet transform
+    # This part checks amplitude and phase, does not post-resample
     tf_data_nwb, tf_series = store_wavelet_transform(car_series,
                                                      nwbfile.processing['preprocessing'],
                                                      filters='rat',
@@ -70,6 +72,7 @@ def test_pipeline(neural_data):
     assert_array_equal(tf_series[0].data[:], abs(tf_data))
     assert_array_equal(tf_series[1].data[:], np.angle(tf_data))
 
+    # This part only checks amplitude, does post-resample
     nwbfile, device, electrode_group, electrodes = generate_nwbfile()
     ECoG_ts = ElectricalSeries('ECoG_data',
                                neural_data,
@@ -87,8 +90,13 @@ def test_pipeline(neural_data):
                                                      hg_only=True,
                                                      chunked=False,
                                                      abs_only=True,
-                                                     post_resample_rate=200.)
-    assert tf_data_nwb.shape != tf_data.shape
+                                                     post_resample_rate=post_resample_rate)
+    if post_resample_rate is not None:
+        tf_data = resample(abs(tf_data), post_resample_rate, new_sample_rate)
+        assert_array_equal(tf_data_nwb, tf_data)
+        assert tf_series[0].rate == post_resample_rate
+    else:
+        assert tf_series[0].rate == new_sample_rate
 
 
 @pytest.mark.parametrize("post_resample_rate", [None, 200.])
@@ -132,6 +140,12 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
             io.write(nwbfile)
         with NWBHDF5IO(os.path.join(tmpdir, name), mode='r') as io:
             nwbfile = io.read()
-            arrays.append(nwbfile.processing['preprocessing']['wvlt_amp_CAR_ln_downsampled_ECoG_data'].data[:])
+            series = nwbfile.processing['preprocessing']['wvlt_amp_CAR_ln_downsampled_ECoG_data']
+            final_rate = series.rate
+            if post_resample_rate is None:
+                assert final_rate == new_sample_rate
+            else:
+                assert final_rate == post_resample_rate
+            arrays.append(series.data[:])
     assert np.dtype(arrays[0].dtype) == np.dtype(arrays[1].dtype)
     assert_allclose(*arrays, rtol=0.01)
