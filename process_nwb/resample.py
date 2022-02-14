@@ -168,7 +168,7 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=None, npad
         Which axis to downsample. Default is 0.
     scaling : float
         Scale the values by this. Can help with accuracy of downstream operations if the raw values
-        are too small.
+        are too small. Default = 1e6.
     npad : int
         Padding to add to beginning and end of timeseries. Default 0.
     precision : str
