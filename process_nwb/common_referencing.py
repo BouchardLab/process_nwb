@@ -1,5 +1,7 @@
 import numpy as np
 
+from hdmf.backends.hdf5.h5_utils import H5DataIO
+
 from pynwb.ecephys import ElectricalSeries
 
 from process_nwb.utils import dtype
@@ -99,13 +101,21 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
     X_CAR = X - avg
 
     elec_series_CAR = ElectricalSeries('CAR_' + elec_series.name,
-                                       X_CAR,
+                                       H5DataIO(X_CAR,
+                                                compression=True,
+                                                shuffle=True,
+                                                flecter32=True),
                                        elec_series.electrodes,
                                        starting_time=elec_series.starting_time,
                                        rate=rate,
                                        description=('CARed: ' +
                                                     elec_series.description))
-    CAR_series = ElectricalSeries('CAR', avg, elec_series.electrodes,
+    CAR_series = ElectricalSeries('CAR',
+                                  H5DataIO(avg,
+                                           compression=True,
+                                           shuffle=True,
+                                           flecter32=True),
+                                  elec_series.electrodes,
                                   starting_time=elec_series.starting_time,
                                   rate=rate,
                                   description=('CAR: ' + elec_series.description))

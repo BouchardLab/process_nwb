@@ -1,10 +1,14 @@
 import numpy as np
 from scipy.fft import fft, ifft, rfft, irfft
 
+from hdmf.backends.hdf5.h5_utils import H5DataIO
+
 from pynwb.ecephys import ElectricalSeries
 
 from process_nwb.utils import _npads, _smart_pad, _trim, dtype
 
+
+_scaling = 1e6
 
 """
 The `resample_func` code is based on MNE-Python
@@ -148,7 +152,7 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single
     return Xds
 
 
-def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=0, precision='single'):
+def store_resample(elec_series, processing, new_freq, axis=0, scaling=None, npad=0, precision='single'):
     """Resamples the `ElectricalSeries` from the original sampling frequency to a new frequency and
     store the results in a new ElectricalSeries.
 
@@ -177,6 +181,8 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=
     elec_series_ds : ElectricalSeries
         ElectricalSeries that holds X_ds.
     """
+    if scaling is None:
+        scaling = _scaling
     new_freq = float(new_freq)
     X = elec_series.data[:] * scaling
     X_dtype = dtype(X, precision)
@@ -186,7 +192,10 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=1e6, npad=
     X_ds = resample(X, new_freq, old_freq, axis=axis, npad=npad, precision=precision)
 
     elec_series_ds = ElectricalSeries('downsampled_' + elec_series.name,
-                                      X_ds,
+                                      H5DataIO(X_ds,
+                                               compression=True,
+                                               shuffle=True,
+                                               fletcher32=True),
                                       elec_series.electrodes,
                                       starting_time=elec_series.starting_time,
                                       rate=new_freq,

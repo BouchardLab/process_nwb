@@ -1,11 +1,12 @@
 import numpy as np
 
+from hdmf.backends.hdf5.h5_utils import H5DataIO
 from pynwb import NWBHDF5IO
 from pynwb.ecephys import ElectricalSeries
 
-from process_nwb.common_referencing import CAR
+from process_nwb.common_referencing import subtract_CAR, CAR
 from process_nwb.linenoise_notch import apply_linenoise_notch
-from process_nwb.resample import store_resample
+from process_nwb.resample import resample, store_resample, _scaling as scaling
 from process_nwb.utils import dtype
 from process_nwb.wavelet_transform import store_wavelet_transform
 
@@ -16,37 +17,40 @@ def preprocess_block(nwb_path,
                      final_resample_rate=400.,
                      filters='rat',
                      hg_only=True,
+                     all_steps=False,
                      logger=None):
-    '''
-    This is used as the default preprocessing pipeline in nsds-lab-to-nwb,
-    with an option to be run immediately after NWB file creation.
+    """This is the default preprocessing pipeline.
 
     Perform the following steps:
-    1) Resample to frequency and store result,
-    2) Remove 60Hz noise and remove and store the CAR, and
+    1) Resample to initial_resample_rate,
+    2) Remove 60Hz noise and remove the CAR, and
     3) Perform and store a wavelet decomposition.
+    4) Optionally resample the wavelet amplitudes.
 
-    (Extracted from processed_nwb/scripts/preprocess_folder.py)
-
-    INPUTS:
+    Parameters
     -------
-    nwb_path: Path to the .nwb file.
-              This file will be modified as a result of this function.
-    acq_name: Name of the acquisition, either 'ECoG' or 'Poly'.
-    initial_resample_rate: Frequency (in Hz) to resample to
-                           before performing wavelet transform.
-    final_resample_rate: Frequency (in Hz) to resample to
-                         after calculating wavelet amplitudes.
-    filters: Type of filter bank to use for wavelets.
-             Choose from ['rat', 'human', 'changlab'].
-    hg_only: Whether to store high gamma bands only. If False, use all filters.
-    logger: Optional logger passed from upstream.
+    nwb_path : str or pathlike
+        Path to the .nwb file. This file will be modified as a result of this function.
+    acq_name : str
+        Name of the acquisition, either 'ECoG' or 'Poly'.
+    initial_resample_rate : float
+        Frequency (in Hz) to resample to before performing wavelet transform.
+    final_resample_rate : float
+        Frequency (in Hz) to resample to after calculating wavelet amplitudes.
+    filters : str
+        Type of filter bank to use for wavelets. Choose from ['rat', 'human', 'changlab'].
+    hg_only : bool
+        Whether to store high gamma bands only. If False, use all filters.
+    all_steps : bool
+        Whether to store intermediate data between preprocessing steps.
+    logger : logger
+        Optional logger passed from upstream.
 
-    RETURNS:
+    Returns
     -------
     Returns nothing, but changes the NWB file at nwb_path.
     A ProcessingModule with name 'preprocessing' will be added to the NWB.
-    '''
+    """
     with NWBHDF5IO(nwb_path, 'a') as io:
         if logger is not None:
             logger.info('==================================')
@@ -61,6 +65,42 @@ def preprocess_block(nwb_path,
 
         nwbfile.create_processing_module(name='preprocessing',
                                          description='Preprocessing.')
+        if all_steps:
+            if logger is not None:
+                logger.info('Resampling...')
+            _, electrical_series_ds = store_resample(electrical_series,
+                                                     nwbfile.processing['preprocessing'],
+                                                     initial_resample_rate)
+            del _
+
+            if logger is not None:
+                logger.info('Filtering and re-referencing...')
+            _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
+                                                                 nwbfile.processing['preprocessing'])
+            del _
+        else:
+            rate = electrical_series.rate
+            if logger is not None:
+                logger.info('Resampling...')
+            ts = resample(electrical_series.data[:] * scaling,
+                          initial_resample_rate, rate)
+            if logger is not None:
+                logger.info('Filtering and re-referencing...')
+            ts = apply_linenoise_notch(ts, initial_resample_rate)
+            ts = subtract_CAR(ts)
+            electrical_series_CAR = ElectricalSeries(f'CAR_ln_downsampled_' + electrical_series.name,
+                                                     ts,
+                                                     electrical_series.electrodes,
+                                                     starting_time=electrical_series.starting_time,
+                                                     rate=initial_resample_rate)
+
+        if logger is not None:
+            logger.info('Running wavelet transform...')
+        _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
+                                                            nwbfile.processing['preprocessing'],
+                                                            filters=filters,
+                                                            hg_only=hg_only,
+                                                            post_resample_rate=final_resample_rate)
 
         if logger is not None:
             logger.info('Resampling...')
@@ -124,13 +164,21 @@ def store_linenoise_notch_CAR(elec_series, processing, mean_frac=.95, round_func
     X_CAR_ln = X_ln - avg
 
     elec_series_CAR_ln = ElectricalSeries('CAR_ln_' + elec_series.name,
-                                          X_CAR_ln,
+                                          H5DataIO(X_CAR_ln,
+                                                   compression=True,
+                                                   shuffle=True,
+                                                   fletcher32=True),
                                           elec_series.electrodes,
                                           starting_time=elec_series.starting_time,
                                           rate=rate,
                                           description=('CAR_lned: ' +
                                                        elec_series.description))
-    CAR_series = ElectricalSeries('CAR', avg, elec_series.electrodes,
+    CAR_series = ElectricalSeries('CAR_of_' + elec_series.name,
+                                  H5DataIO(avg,
+                                           compression=True,
+                                           shuffle=True,
+                                           fletcher32=True),
+                                  elec_series.electrodes,
                                   starting_time=elec_series.starting_time,
                                   rate=rate,
                                   description=('CAR: ' + elec_series.description))

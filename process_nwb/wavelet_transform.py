@@ -5,6 +5,7 @@ from scipy.fft import fftfreq, fft, ifft
 
 from pynwb.misc import DecompositionSeries
 from hdmf.data_utils import AbstractDataChunkIterator, DataChunk
+from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from process_nwb.utils import (_npads, _smart_pad, _trim,
                                log_spaced_cfs, const_Q_sds,
@@ -362,7 +363,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         cfs = X_wvlt_abs.cfs
         sds = X_wvlt_abs.sds
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
-                                                   X_wvlt_abs,
+                                                   H5DataIO(X_wvlt_abs,
+                                                            compression=True,
+                                                            shuffle=True,
+                                                            fletcher32=True),
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
@@ -380,7 +384,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
             X_wvlt = amplitude
             rate = post_resample_rate
         elec_series_wvlt_amp = DecompositionSeries('wvlt_amp_' + elec_series.name,
-                                                   amplitude,
+                                                   H5DataIO(amplitude,
+                                                            compression=True,
+                                                            shuffle=True,
+                                                            fletcher32=True),
                                                    metric='amplitude',
                                                    source_timeseries=elec_series,
                                                    starting_time=elec_series.starting_time,
@@ -392,7 +399,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
             if post_resample_rate is not None:
                 raise ValueError('Wavelet phase should not be resampled.')
             elec_series_wvlt_phase = DecompositionSeries('wvlt_phase_' + elec_series.name,
-                                                         np.angle(X_wvlt),
+                                                         H5DataIO(np.angle(X_wvlt),
+                                                                  compression=True,
+                                                                  shuffle=True,
+                                                                  fletcher32=True),
                                                          metric='phase',
                                                          source_timeseries=elec_series,
                                                          starting_time=elec_series.starting_time,
