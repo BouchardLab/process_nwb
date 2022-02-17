@@ -4,6 +4,7 @@ from pynwb.ecephys import ElectricalSeries
 
 from process_nwb.common_referencing import CAR
 from process_nwb.linenoise_notch import apply_linenoise_notch
+from process_nwb.pipelines import preprocess_block
 from process_nwb.utils import dtype
 
 
