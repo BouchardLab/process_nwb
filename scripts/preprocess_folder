@@ -1,12 +1,7 @@
 #! /usr/bin/env python
 import argparse, glob, os
-from hdmf.data_utils import InvalidDataIOError
 
-from pynwb import NWBHDF5IO
-
-from process_nwb.resample import store_resample
-from process_nwb.wavelet_transform import store_wavelet_transform
-from process_nwb import store_linenoise_notch_CAR
+from process_nwb import preprocess_block
 
 
 parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
@@ -45,31 +40,9 @@ if len(files) == 0:
 
 for fname in files:
     print('Processing {}'.format(fname))
-    with NWBHDF5IO(fname, 'a') as io:
-        nwbfile = io.read()
-        try:
-            electrical_series = nwbfile.acquisition[acq_name]
-        except KeyError:
-            # in case NWB file is in a legacy format
-            electrical_series = nwbfile.acquisition['Raw'][acq_name]
-
-        nwbfile.create_processing_module(name='preprocessing',
-                                         description='Preprocessing.')
-
-        _, electrical_series_ds = store_resample(electrical_series,
-                                                 nwbfile.processing['preprocessing'],
-                                                 initial_resample_rate)
-        del _
-
-        _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
-                                                             nwbfile.processing['preprocessing'])
-        del _
-
-        _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
-                                                            nwbfile.processing['preprocessing'],
-                                                            filters=filters,
-                                                            hg_only=hg_only,
-                                                            post_resample_rate=final_resample_rate)
-        del _
-
-        io.write(nwbfile)
+    preprocess_block(fname,
+                     acq_name=acq_name,
+                     initial_resample_rate=initial_resample_rate,
+                     final_resample_rate=final_resample_rate,
+                     filters=filters,
+                     hg_only=hg_only)
