@@ -8,7 +8,8 @@ parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\nPerforms the following steps:' +
                                  '\n1) Resample to frequency and store result,' +
                                  '\n2) Remove 60Hz noise and remove and store the CAR, and' +
-                                 '\n3) Perform and store a wavelet decomposition.')
+                                 '\n3) Perform and store a wavelet decomposition.',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('folder', type=str, help='Folder')
 parser.add_argument('--initial_resample_rate', type=float, default=3200., help='Frequency to resample '
                     'to before performing wavelet transform.')
