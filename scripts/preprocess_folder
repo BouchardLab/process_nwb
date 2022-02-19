@@ -1,7 +1,12 @@
 #! /usr/bin/env python
 import argparse, glob, os
+from hdmf.data_utils import InvalidDataIOError
 
-from process_nwb import preprocess_block
+from pynwb import NWBHDF5IO
+
+from process_nwb.resample import store_resample
+from process_nwb.wavelet_transform import store_wavelet_transform
+from process_nwb import store_linenoise_notch_CAR
 
 
 parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
@@ -11,18 +16,15 @@ parser = argparse.ArgumentParser(description='Preprocess nwbs in a folder.' +
                                  '\n3) Perform and store a wavelet decomposition.')
 parser.add_argument('folder', type=str, help='Folder')
 parser.add_argument('--initial_resample_rate', type=float, default=3200., help='Frequency to resample '
-                    'to before performing wavelet transform.')
+                    'to before performing wavelet transform. Default=3200 Hz')
 parser.add_argument('--final_resample_rate', type=float, default=400., help='Frequency to resample '
-                    'to after calculating wavelet amplitudes.')
+                    'to after calculating wavelet amplitudes. Default=400 Hz')
 parser.add_argument('--filters', type=str, default='rat',
                     choices=['rat', 'human', 'changlab'],
                     help='Type of filter bank to use for wavelets.')
-parser.add_argument('--all_filters', action='store_true',
-                    help='Store all filters rather than only HG.')
-parser.add_argument('--all_steps', action='store_true',
-                    help='Store output from all preprocessing steps')
+parser.add_argument('--all_filters', action='store_true')
 parser.add_argument('--acq_name', type=str, default='ECoG',
-                    help='Name of acquisition in NWB file')
+                    help='Name of acquisition in NWB file. Default=ECoG')
 
 args = parser.parse_args()
 
@@ -31,7 +33,6 @@ initial_resample_rate = args.initial_resample_rate
 final_resample_rate = args.final_resample_rate
 filters = args.filters
 hg_only = not args.all_filters
-all_steps = args.all_steps
 acq_name = str(args.acq_name)
 
 files = glob.glob(os.path.join(folder, '*.nwb'))
@@ -44,10 +45,31 @@ if len(files) == 0:
 
 for fname in files:
     print('Processing {}'.format(fname))
-    preprocess_block(fname,
-                     acq_name=acq_name,
-                     initial_resample_rate=initial_resample_rate,
-                     final_resample_rate=final_resample_rate,
-                     filters=filters,
-                     hg_only=hg_only,
-                     all_steps=all_steps)
+    with NWBHDF5IO(fname, 'a') as io:
+        nwbfile = io.read()
+        try:
+            electrical_series = nwbfile.acquisition[acq_name]
+        except KeyError:
+            # in case NWB file is in a legacy format
+            electrical_series = nwbfile.acquisition['Raw'][acq_name]
+
+        nwbfile.create_processing_module(name='preprocessing',
+                                         description='Preprocessing.')
+
+        _, electrical_series_ds = store_resample(electrical_series,
+                                                 nwbfile.processing['preprocessing'],
+                                                 initial_resample_rate)
+        del _
+
+        _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
+                                                             nwbfile.processing['preprocessing'])
+        del _
+
+        _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
+                                                            nwbfile.processing['preprocessing'],
+                                                            filters=filters,
+                                                            hg_only=hg_only,
+                                                            post_resample_rate=final_resample_rate)
+        del _
+
+        io.write(nwbfile)
