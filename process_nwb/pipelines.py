@@ -102,28 +102,6 @@ def preprocess_block(nwb_path,
                                                             hg_only=hg_only,
                                                             post_resample_rate=final_resample_rate)
 
-        if logger is not None:
-            logger.info('Resampling...')
-        _, electrical_series_ds = store_resample(electrical_series,
-                                                 nwbfile.processing['preprocessing'],
-                                                 initial_resample_rate)
-        del _
-
-        if logger is not None:
-            logger.info('Filtering and re-referencing...')
-        _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
-                                                             nwbfile.processing['preprocessing'])
-        del _
-
-        if logger is not None:
-            logger.info('Running wavelet transform...')
-        _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
-                                                            nwbfile.processing['preprocessing'],
-                                                            filters=filters,
-                                                            hg_only=hg_only,
-                                                            post_resample_rate=final_resample_rate)
-        del _
-
         io.write(nwbfile)
         if logger is not None:
             logger.info(f'Preprocessing added to {nwb_path}.')
