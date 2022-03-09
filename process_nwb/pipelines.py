@@ -78,6 +78,7 @@ def preprocess_block(nwb_path,
             _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
                                                                  nwbfile.processing['preprocessing'])
             del _
+            series = electrical_series_CAR
         else:
             rate = electrical_series.rate
             if logger is not None:
@@ -88,11 +89,12 @@ def preprocess_block(nwb_path,
                 logger.info('Filtering and re-referencing...')
             ts = apply_linenoise_notch(ts, initial_resample_rate)
             ts = subtract_CAR(ts)
-            electrical_series_CAR = ElectricalSeries(f'CAR_ln_downsampled_' + electrical_series.name,
+            electrical_series_CAR = ElectricalSeries('CAR_ln_downsampled_' + electrical_series.name,
                                                      ts,
                                                      electrical_series.electrodes,
                                                      starting_time=electrical_series.starting_time,
                                                      rate=initial_resample_rate)
+            series = electrical_series
 
         if logger is not None:
             logger.info('Running wavelet transform...')
@@ -100,29 +102,8 @@ def preprocess_block(nwb_path,
                                                             nwbfile.processing['preprocessing'],
                                                             filters=filters,
                                                             hg_only=hg_only,
-                                                            post_resample_rate=final_resample_rate)
-
-        if logger is not None:
-            logger.info('Resampling...')
-        _, electrical_series_ds = store_resample(electrical_series,
-                                                 nwbfile.processing['preprocessing'],
-                                                 initial_resample_rate)
-        del _
-
-        if logger is not None:
-            logger.info('Filtering and re-referencing...')
-        _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
-                                                             nwbfile.processing['preprocessing'])
-        del _
-
-        if logger is not None:
-            logger.info('Running wavelet transform...')
-        _, electrical_series_wvlt = store_wavelet_transform(electrical_series_CAR,
-                                                            nwbfile.processing['preprocessing'],
-                                                            filters=filters,
-                                                            hg_only=hg_only,
-                                                            post_resample_rate=final_resample_rate)
-        del _
+                                                            post_resample_rate=final_resample_rate,
+                                                            series=series)
 
         io.write(nwbfile)
         if logger is not None:
