@@ -89,7 +89,7 @@ def preprocess_block(nwb_path,
                 logger.info('Filtering and re-referencing...')
             ts = apply_linenoise_notch(ts, initial_resample_rate)
             ts = subtract_CAR(ts)
-            electrical_series_CAR = ElectricalSeries(f'CAR_ln_downsampled_' + electrical_series.name,
+            electrical_series_CAR = ElectricalSeries('CAR_ln_downsampled_' + electrical_series.name,
                                                      ts,
                                                      electrical_series.electrodes,
                                                      starting_time=electrical_series.starting_time,
