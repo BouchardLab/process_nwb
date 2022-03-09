@@ -307,7 +307,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
 
 
 def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, abs_only=True,
-                            npad=0, post_resample_rate=None, chunked=True, precision='single'):
+                            npad=0, post_resample_rate=None, chunked=True, precision='single',
+                            series=None):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
 
@@ -338,6 +339,10 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
         If True, calculate wavelet transform one channel and band at a time and store iteratively into nwb. Default True
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex. Default single.
+    series : ElectricalSeries
+        If not None, this series gets used as the source rather than `elec_series`.
+        Can be used if not all intermediate series are being stored in the NWB
+        during preprocessing.
 
     Returns
     -------
@@ -350,6 +355,8 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     X_dtype = dtype(X, precision)
     X = X.astype(X_dtype, copy=False)
     rate = elec_series.rate
+    if series is None:
+        series = elec_series
 
     final_rate = rate
     if post_resample_rate is not None:
@@ -368,7 +375,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                             shuffle=True,
                                                             fletcher32=True),
                                                    metric='amplitude',
-                                                   source_timeseries=elec_series,
+                                                   source_timeseries=series,
                                                    starting_time=elec_series.starting_time,
                                                    rate=final_rate,
                                                    description=('Wavlet: ' +
@@ -389,7 +396,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                             shuffle=True,
                                                             fletcher32=True),
                                                    metric='amplitude',
-                                                   source_timeseries=elec_series,
+                                                   source_timeseries=series,
                                                    starting_time=elec_series.starting_time,
                                                    rate=final_rate,
                                                    description=('Wavlet: ' +
@@ -404,7 +411,7 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
                                                                   shuffle=True,
                                                                   fletcher32=True),
                                                          metric='phase',
-                                                         source_timeseries=elec_series,
+                                                         source_timeseries=series,
                                                          starting_time=elec_series.starting_time,
                                                          rate=final_rate,
                                                          description=('Wavlet: ' +

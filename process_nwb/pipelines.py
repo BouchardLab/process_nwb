@@ -78,6 +78,7 @@ def preprocess_block(nwb_path,
             _, electrical_series_CAR = store_linenoise_notch_CAR(electrical_series_ds,
                                                                  nwbfile.processing['preprocessing'])
             del _
+            series = electrical_series_CAR
         else:
             rate = electrical_series.rate
             if logger is not None:
@@ -93,6 +94,7 @@ def preprocess_block(nwb_path,
                                                      electrical_series.electrodes,
                                                      starting_time=electrical_series.starting_time,
                                                      rate=initial_resample_rate)
+            series = electrical_series
 
         if logger is not None:
             logger.info('Running wavelet transform...')
@@ -100,7 +102,8 @@ def preprocess_block(nwb_path,
                                                             nwbfile.processing['preprocessing'],
                                                             filters=filters,
                                                             hg_only=hg_only,
-                                                            post_resample_rate=final_resample_rate)
+                                                            post_resample_rate=final_resample_rate,
+                                                            series=series)
 
         io.write(nwbfile)
         if logger is not None:
