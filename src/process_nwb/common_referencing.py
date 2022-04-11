@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
@@ -104,21 +105,25 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
                                        H5DataIO(X_CAR,
                                                 compression=True,
                                                 shuffle=True,
-                                                flecter32=True),
+                                                fletcher32=True),
                                        elec_series.electrodes,
                                        starting_time=elec_series.starting_time,
                                        rate=rate,
                                        description=('CARed: ' +
                                                     elec_series.description))
-    CAR_series = ElectricalSeries('CAR',
-                                  H5DataIO(avg,
-                                           compression=True,
-                                           shuffle=True,
-                                           flecter32=True),
-                                  elec_series.electrodes,
-                                  starting_time=elec_series.starting_time,
-                                  rate=rate,
-                                  description=('CAR: ' + elec_series.description))
+    message = ("The second dimension of data does not match the length of electrodes."
+               " Your data may be transposed.")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        CAR_series = ElectricalSeries('CAR',
+                                      H5DataIO(avg,
+                                               compression=True,
+                                               shuffle=True,
+                                               fletcher32=True),
+                                      elec_series.electrodes,
+                                      starting_time=elec_series.starting_time,
+                                      rate=rate,
+                                      description=('CAR: ' + elec_series.description))
 
     processing.add(elec_series_CAR)
     processing.add(CAR_series)

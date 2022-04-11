@@ -51,7 +51,7 @@ def test_resample_low_freqs():
     assert_allclose(X.std(), Xds.std(), atol=1e-3)
 
 
-def test_long_resample():
+def trest_long_resample():
     """Make sure looping resample limit gives the same value.
     """
     time = 10**7 + 1

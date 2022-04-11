@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from pynwb import NWBHDF5IO
@@ -103,7 +104,7 @@ def preprocess_block(nwb_path,
                                                             filters=filters,
                                                             hg_only=hg_only,
                                                             post_resample_rate=final_resample_rate,
-                                                            series=series)
+                                                            source_series=series)
 
         io.write(nwbfile)
         if logger is not None:
@@ -154,15 +155,19 @@ def store_linenoise_notch_CAR(elec_series, processing, mean_frac=.95, round_func
                                           rate=rate,
                                           description=('CAR_lned: ' +
                                                        elec_series.description))
-    CAR_series = ElectricalSeries('CAR_of_' + elec_series.name,
-                                  H5DataIO(avg,
-                                           compression=True,
-                                           shuffle=True,
-                                           fletcher32=True),
-                                  elec_series.electrodes,
-                                  starting_time=elec_series.starting_time,
-                                  rate=rate,
-                                  description=('CAR: ' + elec_series.description))
+    message = ("The second dimension of data does not match the length of electrodes."
+               " Your data may be transposed.")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        CAR_series = ElectricalSeries('CAR_of_' + elec_series.name,
+                                      H5DataIO(avg,
+                                               compression=True,
+                                               shuffle=True,
+                                               fletcher32=True),
+                                      elec_series.electrodes,
+                                      starting_time=elec_series.starting_time,
+                                      rate=rate,
+                                      description=('CAR: ' + elec_series.description))
 
     processing.add(elec_series_CAR_ln)
     processing.add(CAR_series)

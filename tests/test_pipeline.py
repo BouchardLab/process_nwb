@@ -17,7 +17,7 @@ from process_nwb.common_referencing import subtract_CAR
 def neural_data():
     num_channels = 64
     duration = 10.  # seconds
-    sample_rate = 10000.  # Hz
+    sample_rate = 2000.  # Hz
     neural_data = generate_synthetic_data(duration, num_channels, sample_rate)
     return neural_data
 
@@ -27,10 +27,10 @@ def test_pipeline(neural_data, post_resample_rate):
     """Test that the NWB pipeline gives equal results to running preprocessing functions
     by hand.
     """
-    sample_rate = 10000.  # Hz
+    sample_rate = 2000.  # Hz
     new_sample_rate = 500.  # hz
 
-    nwbfile, device, electrode_group, electrodes = generate_nwbfile()
+    nwbfile, device, electrode_group, electrodes = generate_nwbfile(nchannels=neural_data.shape[1])
     ECoG_ts = ElectricalSeries('ECoG_data',
                                neural_data,
                                electrodes,
@@ -73,7 +73,7 @@ def test_pipeline(neural_data, post_resample_rate):
     assert_array_equal(tf_series[1].data[:], np.angle(tf_data))
 
     # This part only checks amplitude, does post-resample
-    nwbfile, device, electrode_group, electrodes = generate_nwbfile()
+    nwbfile, device, electrode_group, electrodes = generate_nwbfile(nchannels=neural_data.shape[1])
     ECoG_ts = ElectricalSeries('ECoG_data',
                                neural_data,
                                electrodes,
@@ -103,12 +103,12 @@ def test_pipeline(neural_data, post_resample_rate):
 def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
     """Test that the NWB runs with the chunked versions.
     """
-    sample_rate = 10000.  # Hz
+    sample_rate = 2000.  # Hz
     new_sample_rate = 500.  # Hz
 
     arrays = []
     for chunked, name in zip([True, False], ['chunked.nwb', 'all.nwb']):
-        nwbfile, device, electrode_group, electrodes = generate_nwbfile()
+        nwbfile, device, electrode_group, electrodes = generate_nwbfile(nchannels=neural_data.shape[1])
         ECoG_ts = ElectricalSeries('ECoG_data',
                                    neural_data,
                                    electrodes,
@@ -130,7 +130,7 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
                                                   nwbfile.processing['preprocessing'])
 
         # Wavelet transform
-        store_wavelet_transform(car_series,
+        _, out = store_wavelet_transform(car_series,
                                 nwbfile.processing['preprocessing'],
                                 filters='rat',
                                 chunked=chunked,
