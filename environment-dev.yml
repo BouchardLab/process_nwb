@@ -9,5 +9,5 @@ dependencies:
   - pip
   - pip:
     - pynwb
-    - sphinx_rtd_theme
+    - sphinx-rtd-theme
     - sphinx-gallery
