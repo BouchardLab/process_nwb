@@ -49,15 +49,3 @@ def test_resample_low_freqs():
     assert_allclose(cosine(Xds.ravel(), X_new_rate.ravel()), 0., atol=1e-3)
     assert_allclose(X.mean(), Xds.mean(), atol=1e-3)
     assert_allclose(X.std(), Xds.std(), atol=1e-3)
-
-
-def trest_long_resample():
-    """Make sure looping resample limit gives the same value.
-    """
-    time = 10**7 + 1
-    X = np.random.randn(time, 10)
-    old_freq = 12123.1
-    new_freq = 12000.0
-    X0 = resample(X, new_freq, old_freq)
-    X1 = resample(X[:, [0]], new_freq, old_freq)
-    assert_allclose(X0[:, 0], X1[:, 0])
