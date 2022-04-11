@@ -155,8 +155,7 @@ def store_linenoise_notch_CAR(elec_series, processing, mean_frac=.95, round_func
                                           rate=rate,
                                           description=('CAR_lned: ' +
                                                        elec_series.description))
-    message = ("The second dimension of data does not match the length of electrodes."
-               " Your data may be transposed.")
+
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         CAR_series = ElectricalSeries('CAR_of_' + elec_series.name,

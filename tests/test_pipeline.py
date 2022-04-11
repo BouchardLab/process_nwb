@@ -130,7 +130,7 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
                                                   nwbfile.processing['preprocessing'])
 
         # Wavelet transform
-        _, out = store_wavelet_transform(car_series,
+        store_wavelet_transform(car_series,
                                 nwbfile.processing['preprocessing'],
                                 filters='rat',
                                 chunked=chunked,

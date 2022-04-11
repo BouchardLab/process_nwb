@@ -111,8 +111,7 @@ def store_subtract_CAR(elec_series, processing, mean_frac=.95, round_func=np.cei
                                        rate=rate,
                                        description=('CARed: ' +
                                                     elec_series.description))
-    message = ("The second dimension of data does not match the length of electrodes."
-               " Your data may be transposed.")
+
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning)
         CAR_series = ElectricalSeries('CAR',
