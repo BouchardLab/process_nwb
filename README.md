@@ -1,6 +1,6 @@
 # process_nwb
 
-[![Build Status](https://travis-ci.com/BouchardLab/process_nwb.svg?branch=master)](https://travis-ci.com/BouchardLab/process_nwb) [![codecov](https://codecov.io/gh/BouchardLab/process_nwb/branch/master/graph/badge.svg)](https://codecov.io/gh/BouchardLab/process_nwb)
+[![Actions Status](https://github.com/BouchardLab/process_nwb/workflows/process_nwb%20/badge.svg)](https://github.com/BouchardLab/process_nwb/actions) [![codecov](https://codecov.io/gh/BouchardLab/process_nwb/branch/master/graph/badge.svg)](https://codecov.io/gh/BouchardLab/process_nwb)
 
 
 
