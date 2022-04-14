@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
 
-def resample_func(X, num, npad=0, pad='reflect_limited', real=True, precision='single'):
+def resample_func(X, num, npad='fast', pad='reflect_limited', real=True, precision='single'):
     """Resample an array. Operates along the first dimension of the array. This is the low-level
     code. Users shoud likely use `resample()` rather than this function.
 
@@ -51,7 +51,8 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True, precision='s
     num : int
         Number of samples in resampled signal.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     pad : str
         Type of padding. The default is ``'reflect_limited'``.
     real : bool
@@ -74,9 +75,9 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True, precision='s
     n_time = X.shape[0]
     ratio = float(num) / n_time
     npads, to_removes, new_len = _npads(X, npad, ratio=ratio)
+    X = _smart_pad(X, npads, pad)
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
-    X = _smart_pad(X, npads, pad)
     old_len = len(X)
     shorter = new_len < old_len
     use_len = new_len if shorter else old_len
@@ -101,7 +102,7 @@ def resample_func(X, num, npad=0, pad='reflect_limited', real=True, precision='s
     return y
 
 
-def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single'):
+def resample(X, new_freq, old_freq, real=True, axis=0, npad='fast', precision='single', loop=True):
     """Resamples the timeseries from the original sampling frequency to a new frequency.
 
     Parameters
@@ -117,9 +118,12 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single
     axis : int
         Which axis to resample.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
+    loop : bool
+        Whether or not to loop across channels when resampling.
 
     Returns
     -------
@@ -135,15 +139,12 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single
     n_time = X.shape[0]
     new_n_time = int(np.ceil(n_time * new_freq / old_freq))
 
-    loop = False
-    if X.size >= 10**8 and X.shape[1] > 1:
-        loop = True
-
     if loop:
-        Xds = np.zeros((new_n_time,) + X.shape[1:], dtype=X_dtype)
-        for ii in range(X.shape[1]):
-            Xds[:, ii] = resample_func(X[:, [ii]], new_n_time, npad=npad, real=real,
-                                       precision=precision)[:, 0]
+        Xds = np.zeros((new_n_time, np.prod(X.shape[1:])), dtype=X_dtype)
+        for ii in range(np.prod(X.shape[1:])):
+            Xds[:, ii] = resample_func(X.reshape(X.shape[0], -1)[:, [ii]], new_n_time, npad=npad,
+                                       real=real, precision=precision)[:, 0]
+        Xds = Xds.reshape((new_n_time,) + X.shape[1:])
     else:
         Xds = resample_func(X, new_n_time, npad=npad, real=real, precision=precision)
     if axis != 0:
@@ -152,7 +153,7 @@ def resample(X, new_freq, old_freq, real=True, axis=0, npad=0, precision='single
     return Xds
 
 
-def store_resample(elec_series, processing, new_freq, axis=0, scaling=None, npad=0, precision='single'):
+def store_resample(elec_series, processing, new_freq, axis=0, scaling=None, npad='fast', precision='single'):
     """Resamples the `ElectricalSeries` from the original sampling frequency to a new frequency and
     store the results in a new ElectricalSeries.
 
@@ -170,7 +171,8 @@ def store_resample(elec_series, processing, new_freq, axis=0, scaling=None, npad
         Scale the values by this. Can help with accuracy of downstream operations if the raw values
         are too small. Default = 1e6.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
 
