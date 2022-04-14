@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.fft import next_fast_len
 from datetime import datetime
 from dateutil.tz import tzlocal
 
@@ -106,15 +107,20 @@ def _npads(X, npad, ratio=1.):
     """Calculate padding parameters.
     """
     n_time = X.shape[0]
-    bad_msg = 'npad must be "auto" or an integer'
+    bad_msg = 'npad must be "auto", "fast", or an integer'
     if isinstance(npad, str):
-        if npad != 'auto':
+        if npad == 'auto':
+            # Figure out reasonable pad that gets us to a power of 2
+            min_add = min(n_time // 8, 100) * 2
+            npad = 2 ** int(np.ceil(np.log2(n_time + min_add))) - n_time
+            npad, extra = divmod(npad, 2)
+            npads = np.array([npad, npad + extra], int)
+        elif npad == 'fast':
+            npad = next_fast_len(n_time) - n_time
+            npad, extra = divmod(npad, 2)
+            npads = np.array([npad, npad + extra], int)
+        else:
             raise ValueError(bad_msg)
-        # Figure out reasonable pad that gets us to a power of 2
-        min_add = min(n_time // 8, 100) * 2
-        npad = 2 ** int(np.ceil(np.log2(n_time + min_add))) - n_time
-        npad, extra = divmod(npad, 2)
-        npads = np.array([npad, npad + extra], int)
     else:
         if npad != int(npad):
             raise ValueError(bad_msg)

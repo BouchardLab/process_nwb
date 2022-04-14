@@ -173,7 +173,7 @@ class ChannelBandIterator(AbstractDataChunkIterator):
 
         # Need to pad X before predicting chunk and filter shape:
         self.npads, self.to_removes, _ = _npads(X, npad)
-        self.wavelet_time = X.shape[0] + 2 * npad
+        self.wavelet_time = X.shape[0] + self.npads.sum()
         self.filterbank, self.cfs, self.sds = get_filterbank(filters, self.wavelet_time, self.rate,
                                                              hg_only, precision=self.precision)
         self.resample_time = self.X.shape[0]
@@ -231,7 +231,7 @@ class ChannelBandIterator(AbstractDataChunkIterator):
         return (self.resample_time, self.nch, self.nbands)
 
 
-def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0, to_removes=None,
+def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad='fast', to_removes=None,
                       precision='single'):
     """Apply a wavelet transform using a prespecified set of filters.
 
@@ -256,7 +256,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
         Precomputed product of X_fft and heavyside. Useful for when bands are computed
         independently.
     npad : int
-        Length of padding in samples. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     to_removes : int
         Number of samples to remove at the beginning and end of the timeseries. Default None.
     precision : str
@@ -307,7 +308,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad=0
 
 
 def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True, abs_only=True,
-                            npad=0, post_resample_rate=None, chunked=True, precision='single',
+                            npad='fast', post_resample_rate=None, chunked=True, precision='single',
                             source_series=None):
     """Apply a wavelet transform using a prespecified set of filters. Results are stored in the
     NWB file as a `DecompositionSeries`.
@@ -332,7 +333,8 @@ def store_wavelet_transform(elec_series, processing, filters='rat', hg_only=True
     abs_only : bool
         If True, only the amplitude is stored.
     npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     post_resample_rate : float
         If not `None`, resample the computed wavelet amplitudes to this rate.
     chunked : bool

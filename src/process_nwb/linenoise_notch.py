@@ -52,7 +52,7 @@ def _apply_notches(X, notches, rate, fft=True, precision='single'):
     return Xp.astype(X_dtype, copy=False)
 
 
-def apply_linenoise_notch(X, rate, fft=True, noise_hz=60., npad=0, precision='single'):
+def apply_linenoise_notch(X, rate, fft=True, noise_hz=60., npad='fast', precision='single'):
     """Apply notch filters at 60 Hz (by default) and its harmonics.
 
     Filters +/- 1 Hz around the frequencies.
@@ -68,7 +68,8 @@ def apply_linenoise_notch(X, rate, fft=True, noise_hz=60., npad=0, precision='si
     noise_hz: float
         Frequency to notch out
     npad : int
-        Padding to add to beginning and end of timeseries. Default 0.
+        Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
+        fastest length.
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
 
