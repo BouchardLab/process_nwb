@@ -1,6 +1,6 @@
 # process_nwb
 
-[![Actions Status](https://github.com/BouchardLab/process_nwb/workflows/process_nwb%20tests/badge.svg)](https://github.com/BouchardLab/process_nwb/actions) [![codecov](https://codecov.io/gh/BouchardLab/process_nwb/branch/master/graph/badge.svg)](https://codecov.io/gh/BouchardLab/process_nwb)
+[![Actions Status](https://github.com/BouchardLab/process_nwb/workflows/process_nwb%20tests/badge.svg)](https://github.com/BouchardLab/process_nwb/actions) [![codecov](https://codecov.io/gh/BouchardLab/process_nwb/branch/main/graph/badge.svg?token=BJIxGNMXG4)](https://codecov.io/gh/BouchardLab/process_nwb)
 
 
 
