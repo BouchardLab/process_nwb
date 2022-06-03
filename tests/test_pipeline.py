@@ -17,7 +17,7 @@ from process_nwb.common_referencing import subtract_CAR
 def neural_data():
     num_channels = 64
     duration = 10.12324567  # seconds
-    sample_rate = 12207.03125 # Hz
+    sample_rate = 12207.03125  # Hz
     neural_data = generate_synthetic_data(duration, num_channels, sample_rate)
     return neural_data
 
@@ -100,7 +100,8 @@ def test_pipeline(neural_data, post_resample_rate):
 
 
 @pytest.mark.parametrize("post_resample_rate", [None, 200.])
-def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
+@pytest.mark.parametrize("npad", ['fast', 100.])
+def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate, npad):
     """Test that the NWB runs with the chunked versions.
     """
     sample_rate = 2000.  # Hz
@@ -135,7 +136,8 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
                                 filters='rat',
                                 chunked=chunked,
                                 post_resample_rate=post_resample_rate,
-                                hg_only=True)
+                                hg_only=True,
+                                npad=npad)
         with NWBHDF5IO(os.path.join(tmpdir, name), mode='w') as io:
             io.write(nwbfile)
         with NWBHDF5IO(os.path.join(tmpdir, name), mode='r') as io:

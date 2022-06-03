@@ -205,7 +205,7 @@ class ChannelBandIterator(AbstractDataChunkIterator):
             self.rate,
             filters=[self.filterbank[band]],
             X_fft_h=self.X_fft_h,
-            npad=0, # padding happens outside
+            npad=0,  # padding happens outside
             to_removes=self.to_removes,
             precision=self.precision
         )
