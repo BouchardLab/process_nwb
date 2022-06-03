@@ -16,8 +16,8 @@ from process_nwb.common_referencing import subtract_CAR
 @pytest.fixture
 def neural_data():
     num_channels = 64
-    duration = 10.  # seconds
-    sample_rate = 2000.  # Hz
+    duration = 10.12324567  # seconds
+    sample_rate = 12207.03125 # Hz
     neural_data = generate_synthetic_data(duration, num_channels, sample_rate)
     return neural_data
 
@@ -148,4 +148,5 @@ def test_chunked_pipeline(tmpdir, neural_data, post_resample_rate):
                 assert final_rate == post_resample_rate
             arrays.append(series.data[:])
     assert np.dtype(arrays[0].dtype) == np.dtype(arrays[1].dtype)
+    assert arrays[0].shape == arrays[1].shape
     assert_allclose(*arrays, rtol=0.01)
