@@ -178,7 +178,7 @@ class ChannelBandIterator(AbstractDataChunkIterator):
                                                              hg_only, precision=self.precision)
         self.resample_time = self.X.shape[0]
         if post_resample_rate is not None:
-            self.resample_time = int(np.ceil(self.wavelet_time * post_resample_rate / rate))
+            self.resample_time = int(np.ceil(self.X.shape[0] * post_resample_rate / rate))
 
         self.nch = self.X.shape[1]
         self.nbands = len(self.filterbank)
@@ -205,9 +205,13 @@ class ChannelBandIterator(AbstractDataChunkIterator):
             self.rate,
             filters=[self.filterbank[band]],
             X_fft_h=self.X_fft_h,
+            npad=0,  # padding happens outside
             to_removes=self.to_removes,
             precision=self.precision
         )
+
+        if band == 0:
+            data = _trim(data, self.to_removes)
         data = np.abs(data)
         if self.post_resample_rate is not None:
             data = resample(data, self.post_resample_rate, self.rate, precision=self.precision)
@@ -259,7 +263,8 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad='
         Padding to add to beginning and end of timeseries. Default 'fast', which pads to the next
         fastest length.
     to_removes : int
-        Number of samples to remove at the beginning and end of the timeseries. Default None.
+        Number of samples to remove at the beginning and end of the timeseries. Default None. Only
+        used if X_fft_h is not None.
     precision : str
         Either `single` for float32/complex64 or `double` for float/complex.
 
