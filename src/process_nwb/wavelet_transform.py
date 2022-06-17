@@ -241,14 +241,16 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad='
 
     Calculates the center frequencies and bandwidths for the wavelets and applies them along with
     a heavyside function to the fft of the signal before performing an inverse fft. Here are additional details:
-    
-    1. Computes the FFT of the signal and applies 2u(f), where u(f) = heaviside function for computing the analytic signal
-    2. Filters in the frequency domain by multiplying with a gaussian kernel (or eqv a complex morlet wavelet in the time domain)
+
+    1. Computes the FFT of the signal and applies 2u(f), where u(f) = heaviside function necessary for
+            calculating analytic signal
+    2. Filters in the frequency domain by multiplying with a gaussian kernel
+            (or eqv a complex morlet wavelet in the time domain)
         a. The gaussian kernel location = the center frequency and the standard deviation = the center frequency / Q
         b. For the 'rat' and 'human' filters, Q is constant with a default value of 8
     3. Computes the IFFT returning the analytic bandpassed (via a complex morlet wavelet) signal for each filter
-    
-    
+
+
 
     Parameters
     ----------
