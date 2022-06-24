@@ -289,6 +289,7 @@ def wavelet_transform(X, rate, filters='rat', hg_only=True, X_fft_h=None, npad='
     sds : ndarray
         Bandwidths used.
     """
+    
     if X_fft_h is None:
         X_dtype = dtype(X, precision)
         X = X.astype(X_dtype, copy=False)
